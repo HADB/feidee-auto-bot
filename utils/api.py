@@ -1,6 +1,7 @@
 import requests
 import json
 import hashlib
+import time
 from utils import config, log
 from bs4 import BeautifulSoup
 
@@ -8,6 +9,9 @@ headers = {
     "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36",
 }
 session = requests.session()
+payout_categories = []
+income_categories = []
+accounts = []
 
 
 def login():
@@ -17,18 +21,111 @@ def login():
     password = hash_password(password)
     password = hash_password(email + password)
     password = hash_password(password + vccode)
-    params = {"email": email, "password": password, "uid": uid, "status": "0"}
+    params = {"email": email, "password": password, "uid": uid, "status": "1"}
     result = session.get(
         "https://login.sui.com/login.do", params=params, headers=headers
     )
     log.info(result.text)
 
-    auth_redirect("GET", "https://login.sui.com/auth.do", {}, 1)
+    auth_redirect("GET", "https://login.sui.com/auth.do")
 
     result = session.post(
         "https://www.sui.com/report_index.rmi", params={"m": "a"}, headers=headers
     )
     log.info(result.text)
+
+
+def init_data():
+    global payout_categories
+    global income_categories
+    global accounts
+
+    result = session.get("https://www.sui.com/tally/new.do", headers=headers)
+    soup = BeautifulSoup(result.text, features="html.parser")
+
+    payoutLis = (
+        soup.find(id="levelSelect-payout")
+        .find(id="ls-ul1-payout")
+        .find_all("li", recursive=False)
+    )
+    payout_categories = []
+    for payoutLi in payoutLis:
+        lv1Id = payoutLi["id"][13:]
+        lv1Name = payoutLi.find("span")["title"]
+        payoutUl2 = payoutLi.find(id="ls-ul2-payout-" + lv1Id)
+        payoutLi2s = payoutUl2.find_all("li", recursive=False)[:-1]
+        payoutCat = {"id": lv1Id, "name": lv1Name, "subCat": []}
+        payout_categories.append(payoutCat)
+        for payoutLi2 in payoutLi2s:
+            lv2id = payoutLi2["id"][13:]
+            lv2name = payoutLi2.find("span")["title"]
+            lv2Cat = {"id": lv2id, "name": lv2name}
+            payoutCat["subCat"].append(lv2Cat)
+
+    incomeLis = (
+        soup.find(id="levelSelect-income")
+        .find(id="ls-ul1-income")
+        .find_all("li", recursive=False)
+    )
+    income_categories = []
+    for incomeLi in incomeLis:
+        lv1Id = incomeLi["id"][13:]
+        lv1Name = incomeLi.find("span")["title"]
+        incomeUl2 = incomeLi.find(id="ls-ul2-income-" + lv1Id)
+        incomeLi2s = incomeUl2.find_all("li", recursive=False)[:-1]
+        incomeCat = {"id": lv1Id, "name": lv1Name, "subCat": []}
+        income_categories.append(incomeCat)
+        for incomeLi2 in incomeLi2s:
+            lv2id = incomeLi2["id"][13:]
+            lv2name = incomeLi2.find("span")["title"]
+            lv2Cat = {"id": lv2id, "name": lv2name}
+            incomeCat["subCat"].append(lv2Cat)
+
+    accountsUl = soup.find(id="ul_tb-inAccount-5")
+    accountLis = accountsUl.find_all("li", recursive=False)
+    accounts = []
+    for li in accountLis:
+        accid = li["id"][17:]
+        accName = li.text
+        accounts.append({"id": accid, "name": accName})
+
+
+# 支出
+def payout(
+    account,  # 账户
+    category,  # 分类
+    price,  # 金额
+    memo,  # 备注
+    payoutTime=None,  # 时间
+    id=0,  # 修改需要传 id
+    store=0,  # 商家
+    project=0,  # 项目
+    member=0,  # 成员
+):
+    if payoutTime == None:
+        payoutTime = time.strftime("%Y-%m-%d %H:%M", time.localtime())
+    account_id = get_account_id(account)
+    category_id = get_category_id("payout", category)
+    params = {
+        "id": id,
+        "account": account_id,  # 账户
+        "category": category_id,  # 分类
+        "store": store,  # 商家
+        "time": payoutTime,  # 时间
+        "project": project,  # 项目
+        "member": member,  # 成员
+        "memo": memo,  # 备注
+        "url": "",
+        "out_account": 0,  # 转出账户
+        "in_account": 0,  # 转入账户
+        "debt_account": "",  # 欠款账户
+        "price": price,
+        "price2": "",
+    }
+    result = session.post(
+        "https://www.sui.com/tally/payout.rmi", params=params, headers=headers
+    )
+    log.info(f"payout result: {result.text}")
 
 
 def get_vccode_and_uid():
@@ -42,7 +139,7 @@ def hash_password(str):
     return hashlib.sha1(bytes(str, encoding="ascii")).hexdigest()
 
 
-def auth_redirect(method, url, data, count):
+def auth_redirect(method, url, data={}, count=1):
     if count > 5:
         log.info("跳转太多次了")
         return
@@ -59,7 +156,6 @@ def auth_redirect(method, url, data, count):
             action = soup.find("form")["action"]
             method = soup.find("form")["method"]
             inputs = soup.find("form").find_all("input")
-            data = {}
             for input in inputs:
                 name = input["name"]
                 value = input["value"]
@@ -68,3 +164,25 @@ def auth_redirect(method, url, data, count):
             auth_redirect(method, action, data, count + 1)
     else:
         log.info("认证跳转成功")
+
+
+def get_account_id(account_name):
+    global account
+    for account in accounts:
+        if account["name"] == account_name:
+            return account["id"]
+    return None
+
+
+def get_category_id(type, category_name):
+    global payout_categories
+    global income_categories
+    categories = payout_categories if type == "payout" else income_categories
+    for category in categories:
+        if category["name"] == category_name:
+            return category["id"]
+        else:
+            for sub_category in category["subCat"]:
+                if sub_category["name"] == category_name:
+                    return sub_category["id"]
+    return None
