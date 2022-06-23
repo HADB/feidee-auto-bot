@@ -36,8 +36,8 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile):
     shutil.rmtree("images")
     os.makedirs("images")
     ocr = CnOcr()
-    moneyOcr = CnOcr(cand_alphabet="¥0123456789.")
-    timeOcr = CnOcr(cand_alphabet="-0123456789/: 餐饮美食购物百货交通出行休闲娱乐生活服务其他还款退款入账中")
+    amount_ocr = CnOcr(cand_alphabet="¥0123456789.")
+    category_and_time_ocr = CnOcr(cand_alphabet="-0123456789/: 餐饮美食购物百货交通出行休闲娱乐生活服务其他还款退款入账中")
     contents = await file.read()
     image = Image.open(io.BytesIO(contents))
     rgb_img = image.convert("RGB")
@@ -45,9 +45,7 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile):
     for h in range(0, image.height):
         for w in range(0, image.width):
             rgb = rgb_img.getpixel((w, h))
-            if color.is_same_color(rgb, (238, 238, 238), 1) or color.is_same_color(
-                rgb, (246, 246, 246), 1
-            ):
+            if color.is_same_color(rgb, (238, 238, 238), 1) or color.is_same_color(rgb, (246, 246, 246), 1):
                 if h not in point_counts:
                     point_counts[h] = 0
                 else:
@@ -70,18 +68,12 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile):
 
             amount = cropped.crop((800, 100, cropped.width - 30, 190))
             amount.save(f"{filename}-amount.png")
-            amount_text = moneyOcr.ocr_for_single_line(
-                numpy.array(amount.convert("RGB"))
-            )[0].replace("¥", "")
+            amount_text = amount_ocr.ocr_for_single_line(numpy.array(amount.convert("RGB")))[0].replace("¥", "")
 
             category_and_time = cropped.crop((140, 120, 800, 180))
             category_and_time.save(f"{filename}-time.png")
-            category_and_time_text = timeOcr.ocr_for_single_line(
-                numpy.array(category_and_time.convert("RGB"))
-            )[0]
-            m = re.match(
-                r"^([^0-9a-zA-Z ]+)([\d/\s:]+)([\D]*)$", category_and_time_text
-            )
+            category_and_time_text = category.ocr_for_single_line(numpy.array(category_and_time.convert("RGB")))[0]
+            m = re.match(r"^([^0-9a-zA-Z ]+)([\d/\s:]+)([\D]*)$", category_and_time_text)
             if len(m.groups()) < 3:
                 last_height = h
                 continue
@@ -91,13 +83,9 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile):
             # print(m.groups()[0].strip(), m.groups()[1].strip(), m.groups()[2].strip())
 
             # 忽略入账中
-            if not (
-                config.getboolean("app", "ignore_pending_bill") and pending == "入账中"
-            ):
+            if not (config.getboolean("app", "ignore_pending_bill") and pending == "入账中"):
 
-                bill_time = datetime.strptime(
-                    f"{datetime.today().year}/{bill_time}", "%Y/%m/%d %H:%M"
-                )
+                bill_time = datetime.strptime(f"{datetime.today().year}/{bill_time}", "%Y/%m/%d %H:%M")
                 if "掌上生活还款" in memo_text:
                     # 转账
                     todo = 1
