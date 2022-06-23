@@ -1,5 +1,6 @@
 from utils import api, color, config
 from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import FileResponse
 import json
 from PIL import Image
 import io
@@ -36,13 +37,18 @@ async def home():
     return {"Hello": "World"}
 
 
+@app.get("/images/{file_name}")
+async def get_image(file_name: str):
+    return FileResponse(f"images/{file_name}", media_type="image/png")
+
+
 @app.post("/upload/screenshot/cmb-life-bill")
 async def uploadCmbLifeBillScreenshot(file: UploadFile):
     # shutil.rmtree("images")
     # os.makedirs("images")
     api.login()
     api.init_data()
-    
+
     file_bytes = await file.read()
     bills_img = Image.open(io.BytesIO(file_bytes))
     rgb_img = bills_img.convert("RGB")
@@ -67,7 +73,7 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile):
         if last_y != 0 and abs(y - last_y - 200) < 10:
             filename = f"images/{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
             current_bill_img = bills_img.crop((0, last_y, bills_img.width, y))
-            current_bill_img.save(f"{filename}.png")
+
             memo_img = current_bill_img.crop((140, 40, 900, 100))
             # memo_img.save(f"{filename}-momo.png")
             memo = "".join(normal_ocr.ocr_for_single_line(numpy.array(memo_img.convert("RGB")))[0])
@@ -131,7 +137,15 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile):
                         print("HAS", "招行信用卡", category, bill_time, amount, memo)
                     else:
                         print("NEW", "招行信用卡", category, bill_time, amount, memo)
-                        api.payout("招行信用卡", category, bill_time, amount, memo)
+                        current_bill_img.save(f"{filename}.png")
+                        api.payout(
+                            "招行信用卡",
+                            category,
+                            bill_time,
+                            amount,
+                            memo,
+                            f"https://fab.yuanfen.net:5443/images/{filename}.png",
+                        )
                         added_count += 1
                         monthly_bills = save_bill(monthly_bills, "招行信用卡", category, bill_time, amount, memo)
 

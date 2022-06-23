@@ -85,6 +85,7 @@ def payout(
     bill_time,  # 时间
     amount,  # 金额
     memo,  # 备注
+    url="", # 图片 URL
     id=0,  # 修改需要传 id
     store=0,  # 商家
     project=0,  # 项目
@@ -101,7 +102,7 @@ def payout(
         "project": project,  # 项目
         "member": member,  # 成员
         "memo": memo,  # 备注
-        "url": "",
+        "url": url, # 图片 URL
         "out_account": 0,  # 转出账户
         "in_account": 0,  # 转入账户
         "debt_account": "",  # 欠款账户
