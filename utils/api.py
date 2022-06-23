@@ -22,16 +22,12 @@ def login():
     password = hash_password(email + password)
     password = hash_password(password + vccode)
     params = {"email": email, "password": password, "uid": uid, "status": "1"}
-    result = session.get(
-        "https://login.sui.com/login.do", params=params, headers=headers
-    )
+    result = session.get("https://login.sui.com/login.do", params=params, headers=headers)
     log.info(result.text)
 
     auth_redirect("GET", "https://login.sui.com/auth.do")
 
-    result = session.post(
-        "https://www.sui.com/report_index.rmi", params={"m": "a"}, headers=headers
-    )
+    result = session.post("https://www.sui.com/report_index.rmi", params={"m": "a"}, headers=headers)
     log.info(result.text)
 
 
@@ -43,11 +39,7 @@ def init_data():
     result = session.get("https://www.sui.com/tally/new.do", headers=headers)
     soup = BeautifulSoup(result.text, features="html.parser")
 
-    payoutLis = (
-        soup.find(id="levelSelect-payout")
-        .find(id="ls-ul1-payout")
-        .find_all("li", recursive=False)
-    )
+    payoutLis = soup.find(id="levelSelect-payout").find(id="ls-ul1-payout").find_all("li", recursive=False)
     payout_categories = []
     for payoutLi in payoutLis:
         lv1Id = payoutLi["id"][13:]
@@ -62,11 +54,7 @@ def init_data():
             lv2Cat = {"id": lv2id, "name": lv2name}
             payoutCat["subCat"].append(lv2Cat)
 
-    incomeLis = (
-        soup.find(id="levelSelect-income")
-        .find(id="ls-ul1-income")
-        .find_all("li", recursive=False)
-    )
+    incomeLis = soup.find(id="levelSelect-income").find(id="ls-ul1-income").find_all("li", recursive=False)
     income_categories = []
     for incomeLi in incomeLis:
         lv1Id = incomeLi["id"][13:]
@@ -94,9 +82,9 @@ def init_data():
 def payout(
     account,  # 账户
     category,  # 分类
-    price,  # 金额
+    bill_time,  # 时间
+    amount,  # 金额
     memo,  # 备注
-    billTime,  # 时间
     id=0,  # 修改需要传 id
     store=0,  # 商家
     project=0,  # 项目
@@ -109,7 +97,7 @@ def payout(
         "account": account_id,  # 账户
         "category": category_id,  # 分类
         "store": store,  # 商家
-        "time": time.strftime("%Y-%m-%d %H:%M", billTime),  # 时间
+        "time": bill_time,  # 时间
         "project": project,  # 项目
         "member": member,  # 成员
         "memo": memo,  # 备注
@@ -117,19 +105,15 @@ def payout(
         "out_account": 0,  # 转出账户
         "in_account": 0,  # 转入账户
         "debt_account": "",  # 欠款账户
-        "price": price,
+        "price": amount,
         "price2": "",
     }
-    result = session.post(
-        "https://www.sui.com/tally/payout.rmi", params=params, headers=headers
-    )
+    result = session.post("https://www.sui.com/tally/payout.rmi", params=params, headers=headers)
     log.info(f"payout result: {result.text}")
 
 
 def get_vccode_and_uid():
-    result = json.loads(
-        session.get("https://login.sui.com/login.do?opt=vccode", headers=headers).text
-    )
+    result = json.loads(session.get("https://login.sui.com/login.do?opt=vccode", headers=headers).text)
     return (result["vccode"], result["uid"])
 
 
