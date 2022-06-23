@@ -65,9 +65,9 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile):
     added_count = 0
     for y in lines:
         if last_y != 0 and abs(y - last_y - 200) < 10:
-            # filename = f"images/{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+            filename = f"images/{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
             current_bill_img = bills_img.crop((0, last_y, bills_img.width, y))
-            # cropped.save(f"{filename}.png")
+            current_bill_img.save(f"{filename}.png")
             memo_img = current_bill_img.crop((140, 40, 900, 100))
             # memo_img.save(f"{filename}-momo.png")
             memo = normal_ocr.ocr_for_single_line(numpy.array(memo_img.convert("RGB")))[0]
@@ -81,7 +81,7 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile):
             category_time = category_time_ocr.ocr_for_single_line(numpy.array(category_time_img.convert("RGB")))[0]
             m = re.match(r"^([^0-9a-zA-Z ]+)([\d/\s:]+)([\D]*)$", category_time)
             if len(m.groups()) < 3:
-                last_y = h
+                last_y = y
                 continue
             category = m.groups()[0].strip()
             bill_time = m.groups()[1].strip()
