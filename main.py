@@ -70,15 +70,15 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile):
             current_bill_img.save(f"{filename}.png")
             memo_img = current_bill_img.crop((140, 40, 900, 100))
             # memo_img.save(f"{filename}-momo.png")
-            memo = normal_ocr.ocr_for_single_line(numpy.array(memo_img.convert("RGB")))[0]
+            memo = "".join(normal_ocr.ocr_for_single_line(numpy.array(memo_img.convert("RGB")))[0])
 
             amount_img = current_bill_img.crop((800, 100, current_bill_img.width - 30, 190))
             # amount_img.save(f"{filename}-amount.png")
-            amount = float(amount_ocr.ocr_for_single_line(numpy.array(amount_img.convert("RGB")))[0].replace("¥", ""))
+            amount = float("".join(amount_ocr.ocr_for_single_line(numpy.array(amount_img.convert("RGB")))[0]).replace("¥", ""))
 
             category_time_img = current_bill_img.crop((140, 120, 800, 180))
             # category_time_img.save(f"{filename}-time.png")
-            category_time = category_time_ocr.ocr_for_single_line(numpy.array(category_time_img.convert("RGB")))[0]
+            category_time = "".join(category_time_ocr.ocr_for_single_line(numpy.array(category_time_img.convert("RGB")))[0])
             m = re.match(r"^([^0-9a-zA-Z ]+)([\d/\s:]+)([\D]*)$", category_time)
             if len(m.groups()) < 3:
                 last_y = y
