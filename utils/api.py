@@ -96,14 +96,12 @@ def payout(
     category,  # 分类
     price,  # 金额
     memo,  # 备注
-    payoutTime=None,  # 时间
+    billTime,  # 时间
     id=0,  # 修改需要传 id
     store=0,  # 商家
     project=0,  # 项目
     member=0,  # 成员
 ):
-    if payoutTime == None:
-        payoutTime = time.strftime("%Y-%m-%d %H:%M", time.localtime())
     account_id = get_account_id(account)
     category_id = get_category_id("payout", category)
     params = {
@@ -111,7 +109,7 @@ def payout(
         "account": account_id,  # 账户
         "category": category_id,  # 分类
         "store": store,  # 商家
-        "time": payoutTime,  # 时间
+        "time": time.strftime("%Y-%m-%d %H:%M", billTime),  # 时间
         "project": project,  # 项目
         "member": member,  # 成员
         "memo": memo,  # 备注
