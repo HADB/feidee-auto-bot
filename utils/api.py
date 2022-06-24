@@ -118,9 +118,11 @@ def upload(filePath):
     result = session.post("https://www.sui.com/tally/new.do?opt=upload&transId=add", files={"imagefile": open(filePath, "rb")}, headers=headers)
     print(result.text)
     m = re.match(r"^.*'(.*)'.*$", result.text)
+    url = ""
     if len(m.groups()) == 1:
         url = m.groups()[0].strip()
         log.info(f"{url}")
+    return url
 
 
 def get_vccode_and_uid():
