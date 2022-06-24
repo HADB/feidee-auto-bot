@@ -108,6 +108,8 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile, token: str = Form(), ign
                         category = "茶水饮料"
                     elif "饿了么" in memo or "拉扎斯" in memo:
                         category = "早午晚餐"
+                    elif "百果园" in memo:
+                        category = "水果零食"
                     elif "京东" in memo:
                         category = "家庭公共"
                     elif "云上艾珀" in memo:
