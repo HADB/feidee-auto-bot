@@ -109,7 +109,7 @@ def upload(filePath):
     url = ""
     if len(m.groups()) == 1:
         url = m.groups()[0].strip()
-        log.info(f"upload url: {url}")
+        log.info(f"上传图片成功: {url}")
     return url
 
 

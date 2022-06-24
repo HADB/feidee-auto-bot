@@ -10,6 +10,7 @@ from datetime import datetime
 import numpy
 import re
 
+
 app = FastAPI()
 normal_ocr = CnOcr()
 amount_ocr = CnOcr(cand_alphabet="¥0123456789.")
@@ -43,14 +44,53 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile, token: str = Form(), ign
     if token != config.app["token"]:
         raise HTTPException(status_code=403, detail="Forbidden")
     if ignore_pending:
-        print("ignore_pending")
+        log.info("ignore_pending")
     if ignore_same:
-        print("ignore_same")
+        log.info("ignore_same")
+
     api.login()
     api.init_data()
     log.info("完成随手记登录和数据更新")
+
     file_bytes = await file.read()
     bills_img = Image.open(io.BytesIO(file_bytes))
+    lines = get_lines(bills_img)
+
+    last_y = 0
+
+    monthly_bills = get_monthly_bills()
+    added_count = 0
+    for y in lines:
+        if last_y != 0:
+            bill_img, bill_info = read_bill_info(bills_img, last_y, y)
+            if bill_info is not None:
+                # 忽略入账中
+                if not (ignore_pending and bill_info["pending"] == "入账中"):
+                    if "掌上生活还款" in bill_info["memo"]:
+                        # 转账
+                        todo = 1
+                    else:
+                        # 消费
+                        bill_info = process_bill_info(bill_info)
+
+                        if not ignore_same or find_same_bill(monthly_bills, bill_info) is None:
+                            filename = f"images/{datetime.now().strftime('%Y%m%d%H%M%S%f')}.png"
+                            bill_img.save(filename)
+                            bill_info["url"] = api.upload(filename)
+                            log.info(f"准备上传: {bill_info}")
+                            api.payout(bill_info)
+                            added_count += 1
+                            monthly_bills = save_bill(monthly_bills, bill_info)
+                        else:
+                            log.info(f"忽略重复: {bill_info}")
+                else:
+                    log.info(f"忽略未入账: {bill_info}")
+
+        last_y = y
+    return {"result": "success", "count": added_count}
+
+
+def get_lines(bills_img):
     rgb_img = bills_img.convert("RGB")
     point_counts = {}
     for y in range(0, bills_img.height):
@@ -64,88 +104,82 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile, token: str = Form(), ign
     lines = []
     for y, count in point_counts.items():
         if count > bills_img.width / 2 * 0.9:
-            log.info(f"{y}: {count}")
             lines.append(y)
-    last_y = 0
     log.info("完成图片扫描获得切割坐标")
-    monthly_bills = get_monthly_bills()
-    added_count = 0
-    for y in lines:
-        if last_y != 0 and abs(y - last_y - 200) < 10:
-            filename = f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
-            current_bill_img = bills_img.crop((0, last_y, bills_img.width, y))
+    return lines
 
-            memo_img = current_bill_img.crop((140, 40, 900, 100))
-            memo = normal_ocr.ocr_for_single_line(numpy.array(memo_img.convert("RGB")))[0]
 
-            amount_img = current_bill_img.crop((800, 100, current_bill_img.width - 30, 190))
-            amount = float(amount_ocr.ocr_for_single_line(numpy.array(amount_img.convert("RGB")))[0].replace("¥", ""))
+def process_bill_info(bill_info):
+    if "悠饭" in bill_info["memo"] or "叮咚" in bill_info["memo"]:
+        bill_info["category"] = "早午晚餐"
+    elif "全家" in bill_info["memo"]:
+        if bill_info["bill_time"].hour < 10:
+            bill_info["category"] = "早午晚餐"
+        else:
+            bill_info["category"] = "茶水饮料"
+    elif "星巴克" in bill_info["memo"]:
+        bill_info["category"] = "茶水饮料"
+    elif "饿了么" in bill_info["memo"] or "拉扎斯" in bill_info["memo"]:
+        bill_info["category"] = "早午晚餐"
+    elif "百果园" in bill_info["memo"]:
+        bill_info["category"] = "水果零食"
+    elif "京东" in bill_info["memo"]:
+        bill_info["category"] = "家庭公共"
+    elif "云上艾珀" in bill_info["memo"]:
+        bill_info["category"] = "各类会员"
+        bill_info["memo"] = "iCloud 会员"
+    elif "网之易" in bill_info["memo"] or "App Store" in bill_info["memo"]:
+        bill_info["category"] = "游戏"
+    elif "电力公司" in bill_info["memo"]:
+        bill_info["category"] = "水电煤气"
+        bill_info["memo"] = "电费"
+    elif "城投水务" in bill_info["memo"]:
+        bill_info["category"] = "水电煤气"
+        bill_info["memo"] = "水费"
+    elif "美团" in bill_info["memo"] and bill_info["amount"] == "1.50":
+        bill_info["category"] = "共享单车"
+    elif "GOOGLE*CLOUD" in bill_info["memo"]:
+        bill_info["category"] = "虚拟产品"
+        bill_info["memo"] = "GCP"
+    else:
+        bill_info["category"] = "未分类支出"
 
-            category_time_img = current_bill_img.crop((140, 120, 800, 180))
-            category_time = category_time_ocr.ocr_for_single_line(numpy.array(category_time_img.convert("RGB")))[0]
-            m = re.match(r"^([^0-9a-zA-Z ]+)([\d/\s:]+)([\D]*)$", category_time)
-            if len(m.groups()) < 3:
-                last_y = y
-                continue
-            category = m.groups()[0].strip()
-            bill_time = m.groups()[1].strip()
-            pending = m.groups()[2].strip()
+    bill_info["account"] = "招行信用卡"
+    bill_info["bill_time"] = bill_info["bill_time"].strftime("%Y-%m-%d %H:%M")
+    return bill_info
 
-            # 忽略入账中
-            if not (ignore_pending and pending == "入账中"):
-                bill_time = datetime.strptime(f"{datetime.today().year}/{bill_time}", "%Y/%m/%d %H:%M")
-                if "掌上生活还款" in memo:
-                    # 转账
-                    todo = 1
-                else:
-                    # 消费
-                    if "悠饭" in memo or "叮咚" in memo:
-                        category = "早午晚餐"
-                    elif "全家" in memo:
-                        if bill_time.hour < 10:
-                            category = "早午晚餐"
-                        else:
-                            category = "茶水饮料"
-                    elif "星巴克" in memo:
-                        category = "茶水饮料"
-                    elif "饿了么" in memo or "拉扎斯" in memo:
-                        category = "早午晚餐"
-                    elif "百果园" in memo:
-                        category = "水果零食"
-                    elif "京东" in memo:
-                        category = "家庭公共"
-                    elif "云上艾珀" in memo:
-                        category = "各类会员"
-                        memo = "iCloud 会员"
-                    elif "网之易" in memo or "App Store" in memo:
-                        category = "游戏"
-                    elif "电力公司" in memo:
-                        category = "水电煤气"
-                        memo = "电费"
-                    elif "城投水务" in memo:
-                        category = "水电煤气"
-                        memo = "水费"
-                    elif "美团" in memo and amount == "1.50":
-                        category = "共享单车"
-                    elif "GOOGLE*CLOUD" in memo:
-                        category = "虚拟产品"
-                        memo = "GCP"
-                    else:
-                        category = "未分类支出"
 
-                    bill_info = {"account": "招行信用卡", "category": category, "bill_time": bill_time.strftime("%Y-%m-%d %H:%M"), "amount": amount, "memo": memo}
-                    if ignore_same and find_same_bill(monthly_bills, bill_info) is not None:
-                        log.info(f"忽略重复: {bill_info}")
-                    else:
-                        current_bill_img.save(f"images/{filename}.png")
-                        bill_info["url"] = api.upload(f"images/{filename}.png")
-                        log.info(f"准备上传: {bill_info}")
-                        api.payout(bill_info)
-                        added_count += 1
-                        monthly_bills = save_bill(monthly_bills, bill_info)
+def read_bill_info(bills_img, top, bottom):
+    if abs(bottom - top - 200) > 10:
+        return None
 
-        last_y = y
-    return {"result": "success", "count": added_count}
+    bill_img = bills_img.crop((0, top, bills_img.width, bottom))
+
+    memo_img = bill_img.crop((140, 40, 900, 100))
+    memo = normal_ocr.ocr_for_single_line(numpy.array(memo_img.convert("RGB")))[0]
+
+    amount_img = bill_img.crop((800, 100, bill_img.width - 30, 190))
+    amount = float(amount_ocr.ocr_for_single_line(numpy.array(amount_img.convert("RGB")))[0].replace("¥", ""))
+
+    category_time_img = bill_img.crop((140, 120, 800, 180))
+    category_time = category_time_ocr.ocr_for_single_line(numpy.array(category_time_img.convert("RGB")))[0]
+
+    m = re.match(r"^([^0-9a-zA-Z ]+)([\d/\s:]+)([\D]*)$", category_time)
+    if len(m.groups()) == 3:
+        category = m.groups()[0].strip()
+        bill_time = m.groups()[1].strip()
+        pending = m.groups()[2].strip()
+        return (
+            bill_img,
+            {
+                "category": category,
+                "amount": amount,
+                "memo": memo,
+                "bill_time": datetime.strptime(f"{datetime.today().year}/{bill_time}", "%Y/%m/%d %H:%M"),
+                "pending": pending,
+            },
+        )
+    return None
 
 
 def get_monthly_bills():
