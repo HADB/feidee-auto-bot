@@ -1,5 +1,5 @@
 beautifulsoup4==4.11.1
-cnocr==2.1.1
+cnocr==2.1.2.1
 fastapi==0.78.0
 numpy==1.23.0
 onnxruntime==1.11.1
