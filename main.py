@@ -1,5 +1,5 @@
 from utils import api, color, config
-from fastapi import FastAPI, UploadFile, HTTPException
+from fastapi import FastAPI, Form, UploadFile, HTTPException
 from fastapi.responses import FileResponse
 import json
 from PIL import Image
@@ -8,7 +8,6 @@ import os
 from cnocr import CnOcr
 from datetime import datetime
 import numpy
-import shutil
 import re
 
 app = FastAPI()
@@ -20,16 +19,10 @@ category_time_ocr = CnOcr(cand_alphabet="-0123456789/: 餐饮美食购物百货�
 @app.on_event("startup")
 async def startup():
     print("startup")
-    print("ignore_pending_bill", config.getboolean("app", "ignore_pending_bill"))
     if not os.path.exists("images"):
         os.makedirs("images")
     if not os.path.exists("data"):
         os.makedirs("data")
-
-
-# api.login()
-# api.init_data()
-# api.payout("现金", "其他支出", 1.23, "测试支出", "2022-06-22 16:00")
 
 
 @app.get("/")
@@ -45,9 +38,13 @@ async def get_image(file_name: str):
 
 
 @app.post("/upload/screenshot/cmb-life-bill")
-async def uploadCmbLifeBillScreenshot(file: UploadFile):
-    # shutil.rmtree("images")
-    # os.makedirs("images")
+async def uploadCmbLifeBillScreenshot(file: UploadFile, token: str = Form(), ignore_pending: int = Form(1), ignore_same: int = Form(1)):
+    if token != config.app["token"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if ignore_pending:
+        print("ignore_pending")
+    if ignore_same:
+        print("ignore_same")
     api.login()
     api.init_data()
 
@@ -77,15 +74,12 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile):
             current_bill_img = bills_img.crop((0, last_y, bills_img.width, y))
 
             memo_img = current_bill_img.crop((140, 40, 900, 100))
-            # memo_img.save(f"images/{filename}-momo.png")
             memo = normal_ocr.ocr_for_single_line(numpy.array(memo_img.convert("RGB")))[0]
 
             amount_img = current_bill_img.crop((800, 100, current_bill_img.width - 30, 190))
-            # amount_img.save(f"images/{filename}-amount.png")
             amount = float(amount_ocr.ocr_for_single_line(numpy.array(amount_img.convert("RGB")))[0].replace("¥", ""))
 
             category_time_img = current_bill_img.crop((140, 120, 800, 180))
-            # category_time_img.save(f"images/{filename}-time.png")
             category_time = category_time_ocr.ocr_for_single_line(numpy.array(category_time_img.convert("RGB")))[0]
             m = re.match(r"^([^0-9a-zA-Z ]+)([\d/\s:]+)([\D]*)$", category_time)
             if len(m.groups()) < 3:
@@ -96,7 +90,7 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile):
             pending = m.groups()[2].strip()
 
             # 忽略入账中
-            if not (config.getboolean("app", "ignore_pending_bill") and pending == "入账中"):
+            if not (ignore_pending and pending == "入账中"):
                 bill_time = datetime.strptime(f"{datetime.today().year}/{bill_time}", "%Y/%m/%d %H:%M")
                 if "掌上生活还款" in memo:
                     # 转账
@@ -135,7 +129,7 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile):
                     else:
                         category = "未分类支出"
 
-                    if find_same_bill(monthly_bills, "招行信用卡", category, bill_time, amount, memo):
+                    if ignore_same and find_same_bill(monthly_bills, "招行信用卡", category, bill_time, amount, memo):
                         print("HAS", "招行信用卡", category, bill_time, amount, memo)
                     else:
                         print("NEW", "招行信用卡", category, bill_time, amount, memo)
