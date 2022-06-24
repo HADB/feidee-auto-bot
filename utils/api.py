@@ -4,6 +4,7 @@ import hashlib
 import time
 from utils import config, log
 from bs4 import BeautifulSoup
+import re
 
 headers = {
     "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36",
@@ -85,7 +86,7 @@ def payout(
     bill_time,  # 时间
     amount,  # 金额
     memo,  # 备注
-    url="", # 图片 URL
+    url="",  # 图片 URL
     id=0,  # 修改需要传 id
     store=0,  # 商家
     project=0,  # 项目
@@ -102,7 +103,7 @@ def payout(
         "project": project,  # 项目
         "member": member,  # 成员
         "memo": memo,  # 备注
-        "url": url, # 图片 URL
+        "url": url,  # 图片 URL
         "out_account": 0,  # 转出账户
         "in_account": 0,  # 转入账户
         "debt_account": "",  # 欠款账户
@@ -111,6 +112,15 @@ def payout(
     }
     result = session.post("https://www.sui.com/tally/payout.rmi", params=params, headers=headers)
     log.info(f"payout result: {result.text}")
+
+
+def upload(filePath):
+    result = session.post("https://www.sui.com/tally/new.do?opt=upload&transId=add", files={"imagefile": open(filePath, "rb")}, headers=headers)
+    print(result.text)
+    m = re.match(r"^.*'(.*)'.*$", result.text)
+    if len(m.groups()) == 1:
+        url = m.groups()[0].strip()
+        log.info(f"{url}")
 
 
 def get_vccode_and_uid():

@@ -136,16 +136,17 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile, token: str = Form(), ign
                     else:
                         print("NEW", "招行信用卡", category, bill_time, amount, memo)
                         current_bill_img.save(f"images/{filename}.png")
+                        url = api.upload(f"images/{filename}.png")
                         api.payout(
                             "招行信用卡",
                             category,
                             bill_time,
                             amount,
                             memo,
-                            f"https://fab.yuanfen.net:5443/images/{filename}.png",
+                            url,
                         )
                         added_count += 1
-                        monthly_bills = save_bill(monthly_bills, "招行信用卡", category, bill_time, amount, memo, f"https://fab.yuanfen.net:5443/images/{filename}.png")
+                        monthly_bills = save_bill(monthly_bills, "招行信用卡", category, bill_time, amount, memo, url)
 
         last_y = y
     return {"result": "success", "count": added_count}
