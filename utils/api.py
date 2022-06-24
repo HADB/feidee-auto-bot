@@ -80,34 +80,23 @@ def init_data():
 
 
 # 支出
-def payout(
-    account,  # 账户
-    category,  # 分类
-    bill_time,  # 时间
-    amount,  # 金额
-    memo,  # 备注
-    url="",  # 图片 URL
-    id=0,  # 修改需要传 id
-    store=0,  # 商家
-    project=0,  # 项目
-    member=0,  # 成员
-):
-    account_id = get_account_id(account)
-    category_id = get_category_id("payout", category)
+def payout(bill_info):
+    account_id = get_account_id(bill_info["account"])
+    category_id = get_category_id("payout", bill_info["category"])
     params = {
-        "id": id,
+        "id": bill_info["id"] if "id" in bill_info else 0,
         "account": account_id,  # 账户
         "category": category_id,  # 分类
-        "store": store,  # 商家
-        "time": bill_time,  # 时间
-        "project": project,  # 项目
-        "member": member,  # 成员
-        "memo": memo,  # 备注
-        "url": url,  # 图片 URL
+        "store": bill_info["store"] if "store" in bill_info else 0,  # 商家
+        "time": bill_info["bill_time"],  # 时间
+        "project": bill_info["project"] if "project" in bill_info else 0,  # 项目
+        "member": bill_info["member"] if "member" in bill_info else 0,  # 成员
+        "memo": bill_info["memo"],  # 备注
+        "url": bill_info["url"],  # 图片 URL
         "out_account": 0,  # 转出账户
         "in_account": 0,  # 转入账户
         "debt_account": "",  # 欠款账户
-        "price": amount,
+        "price": bill_info["amount"],  # 金额
         "price2": "",
     }
     result = session.post("https://www.sui.com/tally/payout.rmi", params=params, headers=headers)
@@ -116,12 +105,11 @@ def payout(
 
 def upload(filePath):
     result = session.post("https://www.sui.com/tally/new.do?opt=upload&transId=add", files={"imagefile": open(filePath, "rb")}, headers=headers)
-    print(result.text)
     m = re.match(r"^.*'(.*)'.*$", result.text)
     url = ""
     if len(m.groups()) == 1:
         url = m.groups()[0].strip()
-        log.info(f"{url}")
+        log.info(f"upload url: {url}")
     return url
 
 

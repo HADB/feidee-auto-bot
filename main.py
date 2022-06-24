@@ -1,4 +1,4 @@
-from utils import api, color, config
+from utils import api, color, config, log
 from fastapi import FastAPI, Form, UploadFile, HTTPException
 from fastapi.responses import FileResponse
 import json
@@ -60,7 +60,6 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile, token: str = Form(), ign
                     point_counts[y] = 0
                 else:
                     point_counts[y] += 1
-    # print(point_counts)
     lines = []
     for y, count in point_counts.items():
         if count > 1000:
@@ -131,22 +130,16 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile, token: str = Form(), ign
                     else:
                         category = "未分类支出"
 
-                    if ignore_same and find_same_bill(monthly_bills, "招行信用卡", category, bill_time, amount, memo):
-                        print("HAS", "招行信用卡", category, bill_time, amount, memo)
+                    bill_info = {"account": "招行信用卡", "category": category, "bill_time": bill_time.strftime("%Y-%m-%d %H:%M"), "amount": amount, "memo": memo}
+                    if ignore_same and find_same_bill(monthly_bills, bill_info) is not None:
+                        log.info(f"忽略: {bill_info}")
                     else:
-                        print("NEW", "招行信用卡", category, bill_time, amount, memo)
                         current_bill_img.save(f"images/{filename}.png")
-                        url = api.upload(f"images/{filename}.png")
-                        api.payout(
-                            "招行信用卡",
-                            category,
-                            bill_time,
-                            amount,
-                            memo,
-                            url,
-                        )
+                        bill_info["url"] = api.upload(f"images/{filename}.png")
+                        log.info(f"上传: {bill_info}")
+                        api.payout(bill_info)
                         added_count += 1
-                        monthly_bills = save_bill(monthly_bills, "招行信用卡", category, bill_time, amount, memo, url)
+                        monthly_bills = save_bill(monthly_bills, bill_info)
 
         last_y = y
     return {"result": "success", "count": added_count}
@@ -161,22 +154,35 @@ def get_monthly_bills():
     return monthly_bills
 
 
-def find_same_bill(list, account, category, bill_time, amount, memo):
-    for item in list:
+def find_same_bill(list, bill_info):
+    for index, item in enumerate(list):
         if (
-            item["account"] == account
-            and item["category"] == category
-            and item["bill_time"] == bill_time.strftime("%Y-%m-%d %H:%M")
-            and item["amount"] == amount
-            and item["memo"] == memo
+            item["account"] == bill_info["account"]
+            and item["category"] == bill_info["category"]
+            and item["bill_time"] == bill_info["bill_time"]
+            and item["amount"] == bill_info["amount"]
+            and item["memo"] == bill_info["memo"]
         ):
-            return item
+            return (index, item)
     return None
 
 
-def save_bill(list, account, category, bill_time, amount, memo, url):
+def save_bill(list, bill_info):
     monthly_bills_file_path = f"data/{datetime.now().strftime('%Y%m')}.json"
-    list.append({"account": account, "category": category, "bill_time": bill_time.strftime("%Y-%m-%d %H:%M"), "amount": amount, "memo": memo, "url": url})
+    same_bill = find_same_bill(list, bill_info)
+    if same_bill:
+        list[same_bill[0]] = bill_info
+    else:
+        list.append(
+            {
+                "account": bill_info["account"],
+                "category": bill_info["category"],
+                "bill_time": bill_info["bill_time"],
+                "amount": bill_info["amount"],
+                "memo": bill_info["memo"],
+                "url": bill_info["url"],
+            }
+        )
     with open(monthly_bills_file_path, "w", encoding="utf-8") as file:
         json.dump(list, file, indent=4, ensure_ascii=False)
     return list
