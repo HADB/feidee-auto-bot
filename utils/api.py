@@ -100,7 +100,7 @@ def payout(bill_info):
         "price2": "",
     }
     result = session.post("https://www.sui.com/tally/payout.rmi", params=params, headers=headers)
-    log.info(f"payout result: {result.text}")
+    log.info(f"支出记录创建结果: {result.text}")
 
 
 def upload(filePath):

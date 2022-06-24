@@ -17,7 +17,7 @@ category_time_ocr = CnOcr(cand_alphabet="-0123456789/: 餐饮美食购物百货�
 
 
 @app.on_event("startup")
-async def startup():
+def startup():
     print("startup")
     if not os.path.exists("images"):
         os.makedirs("images")
@@ -26,12 +26,12 @@ async def startup():
 
 
 @app.get("/")
-async def home():
+def home():
     return {"Hello": "World"}
 
 
 @app.get("/images/{file_name}")
-async def get_image(file_name: str):
+def get_image(file_name: str):
     if not os.path.exists(f"images/{file_name}"):
         raise HTTPException(status_code=404, detail="Not Found")
     return FileResponse(f"images/{file_name}", media_type="image/png")
@@ -39,6 +39,7 @@ async def get_image(file_name: str):
 
 @app.post("/upload/screenshot/cmb-life-bill")
 async def uploadCmbLifeBillScreenshot(file: UploadFile, token: str = Form(), ignore_pending: int = Form(1), ignore_same: int = Form(1)):
+    log.info("收到请求")
     if token != config.app["token"]:
         raise HTTPException(status_code=403, detail="Forbidden")
     if ignore_pending:
@@ -47,13 +48,13 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile, token: str = Form(), ign
         print("ignore_same")
     api.login()
     api.init_data()
-
+    log.info("完成随手记登录和数据更新")
     file_bytes = await file.read()
     bills_img = Image.open(io.BytesIO(file_bytes))
     rgb_img = bills_img.convert("RGB")
     point_counts = {}
     for y in range(0, bills_img.height):
-        for x in range(0, bills_img.width):
+        for x in range(0, bills_img.width // 2):
             rgb = rgb_img.getpixel((x, y))
             if color.is_same_color(rgb, (238, 238, 238), 1) or color.is_same_color(rgb, (246, 246, 246), 1):
                 if y not in point_counts:
@@ -62,9 +63,11 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile, token: str = Form(), ign
                     point_counts[y] += 1
     lines = []
     for y, count in point_counts.items():
-        if count > 1000:
+        if count > bills_img.width / 2 * 0.9:
+            log.info(f"{y}: {count}")
             lines.append(y)
     last_y = 0
+    log.info("完成图片扫描获得切割坐标")
     monthly_bills = get_monthly_bills()
     added_count = 0
     for y in lines:
@@ -132,11 +135,11 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile, token: str = Form(), ign
 
                     bill_info = {"account": "招行信用卡", "category": category, "bill_time": bill_time.strftime("%Y-%m-%d %H:%M"), "amount": amount, "memo": memo}
                     if ignore_same and find_same_bill(monthly_bills, bill_info) is not None:
-                        log.info(f"忽略: {bill_info}")
+                        log.info(f"忽略重复: {bill_info}")
                     else:
                         current_bill_img.save(f"images/{filename}.png")
                         bill_info["url"] = api.upload(f"images/{filename}.png")
-                        log.info(f"上传: {bill_info}")
+                        log.info(f"准备上传: {bill_info}")
                         api.payout(bill_info)
                         added_count += 1
                         monthly_bills = save_bill(monthly_bills, bill_info)
