@@ -117,7 +117,7 @@ def process_bill_info(bill_info):
             bill_info["category"] = "早午晚餐"
         else:
             bill_info["category"] = "茶水饮料"
-    elif "星巴克" in bill_info["memo"]:
+    elif "星巴克" in bill_info["memo"] or "购吖" in bill_info["memo"]:
         bill_info["category"] = "茶水饮料"
     elif "饿了么" in bill_info["memo"] or "拉扎斯" in bill_info["memo"]:
         bill_info["category"] = "早午晚餐"
