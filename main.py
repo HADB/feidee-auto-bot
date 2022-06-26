@@ -136,6 +136,9 @@ def process_bill_info(bill_info):
     elif "城投水务" in bill_info["memo"]:
         bill_info["category"] = "水电煤气"
         bill_info["memo"] = "水费"
+    elif "上海燃气" in bill_info["memo"]:
+        bill_info["category"] = "水电煤气"
+        bill_info["memo"] = "燃气费"
     elif "美团" in bill_info["memo"] and bill_info["amount"] == "1.50":
         bill_info["category"] = "共享单车"
     elif "GOOGLE*CLOUD" in bill_info["memo"]:
