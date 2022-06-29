@@ -39,7 +39,9 @@ def get_image(file_name: str):
 
 
 @app.post("/upload/screenshot/cmb-life-bill")
-async def uploadCmbLifeBillScreenshot(file: UploadFile, token: str = Form(), ignore_pending: int = Form(1), ignore_same: int = Form(1)):
+async def uploadCmbLifeBillScreenshot(
+    file: UploadFile, token: str = Form(), ignore_pending: int = Form(1), ignore_same: int = Form(1), save_data: int = Form(1), call_feidee: int = Form(1)
+):
     log.info("收到请求")
     if token != config.app["token"]:
         raise HTTPException(status_code=403, detail="Forbidden")
@@ -76,11 +78,16 @@ async def uploadCmbLifeBillScreenshot(file: UploadFile, token: str = Form(), ign
                         if not ignore_same or find_same_bill(monthly_bills, bill_info) is None:
                             filename = f"images/{datetime.now().strftime('%Y%m%d%H%M%S%f')}.png"
                             bill_img.save(filename)
-                            bill_info["url"] = api.upload(filename)
-                            log.info(f"准备上传: {bill_info}")
-                            api.payout(bill_info)
+                            
+                            if call_feidee:
+                                bill_info["url"] = api.upload(filename)
+                                log.info(f"账单信息: {bill_info}")
+                                api.payout(bill_info)
+                            else:
+                                log.info(f"账单信息: {bill_info}")
                             added_count += 1
-                            monthly_bills = save_bill(monthly_bills, bill_info)
+                            if save_data:
+                                monthly_bills = save_bill(monthly_bills, bill_info)
                         else:
                             log.info(f"忽略重复: {bill_info}")
                 else:
