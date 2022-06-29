@@ -20,13 +20,13 @@
 
 ## 使用方法
 
-- 复制 `config-template.ini` 中的内容，创建 `config.ini`，配置随手记的邮箱和密码，生成一个随机的字符串作为 token
+- 复制 `config-template.ini` 中的内容，创建 `config.ini`，配置随手记的邮箱和密码，生成一个随机的字符串作为 `token`
 
 - 部署本服务
 
 - 打开快捷指令模板：[https://www.icloud.com/shortcuts/3a28dfdc635e43f0bfe77e9dd887ea23](https://www.icloud.com/shortcuts/3a28dfdc635e43f0bfe77e9dd887ea23)，添加到你的快捷指令中
 
-- 修改快捷指令中的 URL 域名为你部署的本服务的域名，token 为 config.ini 中配置的 token
+- 修改快捷指令中的 `URL` 域名为你部署的本服务的域名，`token` 为 `config.ini` 中配置的 `token`
 
 - 将快捷指令设置为在共享表单中显示
 
