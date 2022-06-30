@@ -56,7 +56,8 @@ async def uploadCmbLifeBillScreenshot(
 
     file_bytes = await file.read()
     bills_img = Image.open(io.BytesIO(file_bytes))
-    lines = get_lines(bills_img)
+    lines = get_lines(bills_img, config.app["shinkRatio"])
+    bills_img = bills_img.resize((int(bills_img.width // config.app["shinkRatio"]), int(bills_img.height // config.app["shinkRatio"])))
 
     last_y = 0
 
@@ -97,7 +98,7 @@ async def uploadCmbLifeBillScreenshot(
     return {"result": "success", "count": added_count}
 
 
-def get_lines(bills_img):
+def get_lines(bills_img, ratio):
     rgb_img = bills_img.convert("RGB")
     point_counts = {}
     for y in range(0, bills_img.height):
@@ -111,7 +112,7 @@ def get_lines(bills_img):
     lines = []
     for y, count in point_counts.items():
         if count > bills_img.width / 2 * 0.9:
-            lines.append(y)
+            lines.append(int(y // ratio))
     log.info("完成图片扫描获得切割坐标")
     return lines
 
@@ -147,19 +148,48 @@ def get_memo(bill_info):
     return bill_info["memo"]
 
 
+def crop_blank(img: Image):
+    rgb_img = img.convert("RGB")
+    left = 0
+    top = 0
+    right = img.width
+    bottom = img.height
+    for x in range(0, img.width):
+        for y in range(0, img.height):
+            rgb = rgb_img.getpixel((x, y))
+            if left == 0 and not color.is_same_color(rgb, (255, 255, 255), 1):
+                left = x
+    for y in range(0, img.height):
+        for x in range(0, img.width):
+            rgb = rgb_img.getpixel((x, y))
+            if top == 0 and not color.is_same_color(rgb, (255, 255, 255), 1):
+                top = y
+    for x in range(img.width - 1, -1, -1):
+        for y in range(img.height - 1, -1, -1):
+            rgb = rgb_img.getpixel((x, y))
+            if right == img.width and not color.is_same_color(rgb, (255, 255, 255), 1):
+                right = x
+    for y in range(img.height - 1, -1, -1):
+        for x in range(img.width - 1, -1, -1):
+            rgb = rgb_img.getpixel((x, y))
+            if bottom == img.height and not color.is_same_color(rgb, (255, 255, 255), 1):
+                bottom = y
+    return img.crop((left, top, right, bottom))
+
+
 def read_bill_info(bills_img, top, bottom):
-    if abs(bottom - top - 200) > 10:
+    if abs(bottom - top - (bills_img.width // 5.85)) > bills_img.width / 117:
         return None
 
     bill_img = bills_img.crop((0, top, bills_img.width, bottom))
 
-    memo_img = bill_img.crop((140, 40, 900, 100))
+    memo_img = crop_blank(bill_img.crop((140 * bill_img.width // 1170, 40 * bill_img.width // 1170, 900 * bill_img.width // 1170, 100 * bill_img.width // 1170)))
     memo = normal_ocr.ocr_for_single_line(numpy.array(memo_img.convert("RGB")))[0]
 
-    amount_img = bill_img.crop((800, 100, bill_img.width - 30, 190))
+    amount_img = crop_blank(bill_img.crop((800 * bill_img.width // 1170, 100 * bill_img.width // 1170, bill_img.width - 30 * bill_img.width // 1170, 190 * bill_img.width // 1170)))
     amount = float(amount_ocr.ocr_for_single_line(numpy.array(amount_img.convert("RGB")))[0].replace("¥", ""))
 
-    category_time_img = bill_img.crop((140, 120, 800, 180))
+    category_time_img = crop_blank(bill_img.crop((140 * bill_img.width // 1170, 120 * bill_img.width // 1170, 800 * bill_img.width // 1170, 180 * bill_img.width // 1170)))
     category_time = category_time_ocr.ocr_for_single_line(numpy.array(category_time_img.convert("RGB")))[0]
 
     m = re.match(r"^([^0-9a-zA-Z ]+)([\d/\s:]+)([\D]*)$", category_time)
