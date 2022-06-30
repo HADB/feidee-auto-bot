@@ -5,6 +5,7 @@
     },
     "app": {
         "token": "******",
+        "shinkRatio": 2,
         "categories": [
             {
                 "name": "早午晚餐",
