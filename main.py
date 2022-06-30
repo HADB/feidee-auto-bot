@@ -117,14 +117,14 @@ def get_lines(bills_img):
 
 
 def process_bill_info(bill_info):
-    if "悠饭" in bill_info["memo"] or "叮咚" in bill_info["memo"]:
+    if "悠饭" in bill_info["memo"] or "叮咚" in bill_info["memo"] or "大米" in bill_info["memo"]:
         bill_info["category"] = "早午晚餐"
     elif "全家" in bill_info["memo"]:
         if bill_info["bill_time"].hour < 10:
             bill_info["category"] = "早午晚餐"
         else:
             bill_info["category"] = "茶水饮料"
-    elif "星巴克" in bill_info["memo"] or "购吖" in bill_info["memo"]:
+    elif "星巴克" in bill_info["memo"] or "购吖" in bill_info["memo"] or "快客" in bill_info["memo"]:
         bill_info["category"] = "茶水饮料"
     elif "饿了么" in bill_info["memo"] or "拉扎斯" in bill_info["memo"]:
         bill_info["category"] = "早午晚餐"
@@ -146,7 +146,7 @@ def process_bill_info(bill_info):
     elif "上海燃气" in bill_info["memo"]:
         bill_info["category"] = "水电煤气"
         bill_info["memo"] = "燃气费"
-    elif "美团" in bill_info["memo"] and bill_info["amount"] == "1.50":
+    elif "美团" in bill_info["memo"] and bill_info["amount"] == 1.50:
         bill_info["category"] = "共享单车"
     elif "GOOGLE*CLOUD" in bill_info["memo"]:
         bill_info["category"] = "虚拟产品"
