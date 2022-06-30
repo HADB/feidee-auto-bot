@@ -79,9 +79,10 @@ async def uploadCmbLifeBillScreenshot(
                         if not ignore_same or find_same_bill(monthly_bills, bill_info) is None:
                             filename = f"images/{datetime.now().strftime('%Y%m%d%H%M%S%f')}.png"
                             bill_img.save(filename)
+                            bill_info["url"] = f"https://fab.yuanfen.net:5443/{filename}"
 
                             if call_feidee:
-                                bill_info["url"] = api.upload(filename)
+                                # bill_info["url"] = api.upload(filename)
                                 log.info(f"账单信息: {bill_info}")
                                 api.payout(bill_info)
                             else:
