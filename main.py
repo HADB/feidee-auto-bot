@@ -78,7 +78,7 @@ async def uploadCmbLifeBillScreenshot(
                         if not ignore_same or find_same_bill(monthly_bills, bill_info) is None:
                             filename = f"images/{datetime.now().strftime('%Y%m%d%H%M%S%f')}.png"
                             bill_img.save(filename)
-                            
+
                             if call_feidee:
                                 bill_info["url"] = api.upload(filename)
                                 log.info(f"账单信息: {bill_info}")
@@ -117,46 +117,34 @@ def get_lines(bills_img):
 
 
 def process_bill_info(bill_info):
-    if "悠饭" in bill_info["memo"] or "叮咚" in bill_info["memo"] or "大米" in bill_info["memo"]:
-        bill_info["category"] = "早午晚餐"
-    elif "全家" in bill_info["memo"]:
-        if bill_info["bill_time"].hour < 10:
-            bill_info["category"] = "早午晚餐"
-        else:
-            bill_info["category"] = "茶水饮料"
-    elif "星巴克" in bill_info["memo"] or "购吖" in bill_info["memo"] or "快客" in bill_info["memo"]:
-        bill_info["category"] = "茶水饮料"
-    elif "饿了么" in bill_info["memo"] or "拉扎斯" in bill_info["memo"]:
-        bill_info["category"] = "早午晚餐"
-    elif "百果园" in bill_info["memo"]:
-        bill_info["category"] = "水果零食"
-    elif "京东" in bill_info["memo"]:
-        bill_info["category"] = "家庭公共"
-    elif "云上艾珀" in bill_info["memo"]:
-        bill_info["category"] = "各类会员"
-        bill_info["memo"] = "iCloud 会员"
-    elif "网之易" in bill_info["memo"] or "App Store" in bill_info["memo"]:
-        bill_info["category"] = "游戏"
-    elif "电力公司" in bill_info["memo"]:
-        bill_info["category"] = "水电煤气"
-        bill_info["memo"] = "电费"
-    elif "城投水务" in bill_info["memo"]:
-        bill_info["category"] = "水电煤气"
-        bill_info["memo"] = "水费"
-    elif "上海燃气" in bill_info["memo"]:
-        bill_info["category"] = "水电煤气"
-        bill_info["memo"] = "燃气费"
-    elif "美团" in bill_info["memo"] and bill_info["amount"] == 1.50:
-        bill_info["category"] = "共享单车"
-    elif "GOOGLE*CLOUD" in bill_info["memo"]:
-        bill_info["category"] = "虚拟产品"
-        bill_info["memo"] = "GCP"
-    else:
-        bill_info["category"] = "未分类支出"
-
+    bill_info["category"] = get_category(bill_info)
+    bill_info["memo"] = get_memo(bill_info)
     bill_info["account"] = "招行信用卡"
     bill_info["bill_time"] = bill_info["bill_time"].strftime("%Y-%m-%d %H:%M")
+
+    # 特殊场景
+    if "全家" in bill_info["memo"] and bill_info["bill_time"].hour < 10:
+        bill_info["category"] = "早午晚餐"
+    elif "美团" in bill_info["memo"] and bill_info["amount"] == 1.50:
+        bill_info["category"] = "共享单车"
+
     return bill_info
+
+
+def get_category(bill_info):
+    for category in config.app["categories"]:
+        for keyword in category["keywords"]:
+            if keyword in bill_info["memo"]:
+                return category["name"]
+    return "未分类支出"
+
+
+def get_memo(bill_info):
+    for memo in config.app["memos"]:
+        for keyword in memo["keywords"]:
+            if keyword in bill_info["memo"]:
+                return memo["name"]
+    return bill_info["memo"]
 
 
 def read_bill_info(bills_img, top, bottom):

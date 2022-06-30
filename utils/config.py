@@ -1,15 +1,9 @@
-from configparser import ConfigParser
+import json
 
-config = ConfigParser()
-config.read("config.ini", "UTF-8")
+config = {}
+
+with open("config.json") as config_file:
+    config = json.load(config_file)
 
 credentials = config["credentials"]
 app = config["app"]
-
-
-def getint(section, option):
-    return config.getint(section, option)
-
-
-def getboolean(section, option):
-    return config.getboolean(section, option)
