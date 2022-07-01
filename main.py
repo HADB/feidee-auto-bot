@@ -82,7 +82,7 @@ async def uploadCmbLifeBillScreenshot(
                             bill_info["url"] = f"https://fab.yuanfen.net:5443/{filename}"
                             # bill_info["url"] = api.upload(filename)
                             log.info(f"账单信息: {bill_info}")
-                            bill_info["url"] = "" # 先不传图片，自定义域名的图片似乎在随手记无法显示
+                            bill_info["url"] = ""  # 先不传图片，自定义域名的图片似乎在随手记无法显示
                             if call_feidee:
                                 api.payout(bill_info)
                             added_count += 1
