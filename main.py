@@ -80,13 +80,11 @@ async def uploadCmbLifeBillScreenshot(
                             filename = f"images/{datetime.now().strftime('%Y%m%d%H%M%S%f')}.png"
                             bill_img.save(filename)
                             bill_info["url"] = f"https://fab.yuanfen.net:5443/{filename}"
-
+                            # bill_info["url"] = api.upload(filename)
+                            log.info(f"账单信息: {bill_info}")
+                            bill_info["url"] = "" # 先不传图片，自定义域名的图片似乎在随手记无法显示
                             if call_feidee:
-                                # bill_info["url"] = api.upload(filename)
-                                log.info(f"账单信息: {bill_info}")
                                 api.payout(bill_info)
-                            else:
-                                log.info(f"账单信息: {bill_info}")
                             added_count += 1
                             if save_data:
                                 monthly_bills = save_bill(monthly_bills, bill_info)
