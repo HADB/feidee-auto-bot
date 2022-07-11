@@ -63,8 +63,19 @@ async def uploadCmbLifeBillScreenshot(
 
     monthly_bills = get_monthly_bills()
     added_count = 0
+
     for y in lines:
-        if last_y != 0:
+        need_handle = True
+        if last_y == 0:
+            for y2 in range(y - int(bills_img.width // 5.85), y):
+                rgb = bills_img.getpixel((bills_img.width // 2, y2))
+                if color.is_same_color(rgb, (246, 248, 254), 3):
+                    need_handle = False
+                    log.info(f"忽略第一条")
+                    break
+            last_y = y - int(bills_img.width // 5.85)
+
+        if need_handle:
             bill_img, bill_info = read_bill_info(bills_img, last_y, y)
             if bill_info is not None:
                 # 忽略入账中
