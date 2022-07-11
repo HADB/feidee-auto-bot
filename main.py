@@ -13,8 +13,8 @@ import re
 
 app = FastAPI()
 normal_ocr = CnOcr()
-amount_ocr = CnOcr(cand_alphabet="¥0123456789.")
-category_time_ocr = CnOcr(cand_alphabet="-0123456789/: 餐饮美食购物百货交通出行休闲娱乐生活服务其他还款退款入账中")
+amount_ocr = CnOcr(cand_alphabet="-¥0123456789.")
+category_time_ocr = CnOcr(cand_alphabet="0123456789/: 餐饮美食购物百货交通出行休闲娱乐生活服务其他还款退款入账中")
 
 
 @app.on_event("startup")
