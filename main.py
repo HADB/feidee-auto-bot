@@ -258,6 +258,7 @@ def save_bill(list, bill_info):
                 "url": bill_info["url"],
             }
         )
+    list.sort(key=lambda b: b["bill_time"], reverse=True)
     with open(monthly_bills_file_path, "w", encoding="utf-8") as file:
         json.dump(list, file, indent=4, ensure_ascii=False)
     return list
