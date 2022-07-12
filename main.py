@@ -243,7 +243,7 @@ def find_same_bill(list, bill_info):
 
 
 def save_bill(list, bill_info):
-    monthly_bills_file_path = f"data/{datetime.now().strftime('%Y%m')}.json"
+    monthly_bills_file_path = f"data/{bill_info['bill_time'][0:7]}.json"
     same_bill = find_same_bill(list, bill_info)
     if same_bill:
         list[same_bill[0]] = bill_info
