@@ -1,4 +1,4 @@
-from utils import api, color, config, log
+from utils import api, color, config, log, json_utils
 from fastapi import FastAPI, Form, UploadFile, HTTPException
 from fastapi.responses import FileResponse
 import json
@@ -15,6 +15,7 @@ app = FastAPI()
 normal_ocr = CnOcr()
 amount_ocr = CnOcr(cand_alphabet="-¥0123456789.")
 category_time_ocr = CnOcr(cand_alphabet="0123456789/: 餐饮美食购物百货交通出行休闲娱乐生活服务其他还款退款入账中")
+monthly_bills_cache = {}
 
 
 @app.on_event("startup")
@@ -61,7 +62,6 @@ async def uploadCmbLifeBillScreenshot(
 
     last_y = 0
 
-    monthly_bills = get_monthly_bills()
     added_count = 0
 
     for y in lines:
@@ -81,13 +81,12 @@ async def uploadCmbLifeBillScreenshot(
                 # 忽略入账中
                 if not (ignore_pending and bill_info["pending"] == "入账中"):
                     if "掌上生活还款" in bill_info["memo"]:
-                        # 转账
-                        todo = 1
+                        # 转账 TODO
+                        log.info("转账")
                     else:
                         # 消费
                         bill_info = process_bill_info(bill_info)
-
-                        if not ignore_same or find_same_bill(monthly_bills, bill_info) is None:
+                        if not ignore_same or find_same_bill(bill_info) is None:
                             filename = f"images/{datetime.now().strftime('%Y%m%d%H%M%S%f')}.png"
                             bill_img.save(filename)
                             bill_info["url"] = f"https://fab.yuanfen.net:5443/{filename}"
@@ -98,7 +97,7 @@ async def uploadCmbLifeBillScreenshot(
                                 api.payout(bill_info)
                             added_count += 1
                             if save_data:
-                                monthly_bills = save_bill(monthly_bills, bill_info)
+                                save_bill(bill_info)
                         else:
                             log.info(f"忽略重复: {bill_info}")
                 else:
@@ -128,10 +127,10 @@ def get_lines(bills_img, ratio):
 
 
 def process_bill_info(bill_info):
+    monthly_bills = get_monthly_bills(bill_info["bill_time"].strftime("%Y-%m"))
     bill_info["category"] = get_category(bill_info)
     bill_info["memo"] = get_memo(bill_info)
     bill_info["account"] = "招行信用卡"
-    bill_info["bill_time"] = bill_info["bill_time"].strftime("%Y-%m-%d %H:%M")
 
     # 特殊场景
     if "全家" in bill_info["memo"] and bill_info["bill_time"].hour < 10:
@@ -139,6 +138,12 @@ def process_bill_info(bill_info):
     elif "美团" in bill_info["memo"] and bill_info["amount"] == 1.50:
         bill_info["category"] = "共享单车"
 
+    # 若为退款（退款的分类一般无法识别），则分类取最近一笔等额消费的分类
+    if bill_info["amount"] < 0 and bill_info["category"] == "未分类支出":
+        for bill in monthly_bills:
+            if bill["amount"] == -bill_info["amount"]:
+                bill_info["category"] = bill["category"]
+                break
     return bill_info
 
 
@@ -220,17 +225,22 @@ def read_bill_info(bills_img, top, bottom):
     return None
 
 
-def get_monthly_bills():
-    monthly_bills = []
-    monthly_bills_file_path = f"data/{datetime.now().strftime('%Y%m')}.json"
-    if os.path.exists(monthly_bills_file_path):
-        with open(monthly_bills_file_path, "r", encoding="utf-8") as monthly_bills_file:
-            monthly_bills = json.load(monthly_bills_file)
-    return monthly_bills
+def get_monthly_bills(key):
+    global monthly_bills_cache
+    if key in monthly_bills_cache:
+        return monthly_bills_cache[key]
+    else:
+        monthly_bills_cache[key] = []
+        monthly_bills_file_path = f"data/{datetime.now().strftime('%Y-%m')}.json"
+        if os.path.exists(monthly_bills_file_path):
+            with open(monthly_bills_file_path, "r", encoding="utf-8") as monthly_bills_file:
+                monthly_bills_cache[key] = json.load(monthly_bills_file, object_hook=json_utils.datetime_hook)
+        return monthly_bills_cache[key]
 
 
-def find_same_bill(list, bill_info):
-    for index, item in enumerate(list):
+def find_same_bill(bill_info):
+    monthly_bills = get_monthly_bills(bill_info["bill_time"].strftime("%Y-%m"))
+    for index, item in enumerate(monthly_bills):
         if (
             item["account"] == bill_info["account"]
             and item["category"] == bill_info["category"]
@@ -242,13 +252,15 @@ def find_same_bill(list, bill_info):
     return None
 
 
-def save_bill(list, bill_info):
-    monthly_bills_file_path = f"data/{bill_info['bill_time'][0:7]}.json"
-    same_bill = find_same_bill(list, bill_info)
+def save_bill(bill_info):
+    global monthly_bills_cache
+    key = bill_info["bill_time"].strftime("%Y-%m")
+    monthly_bills_file_path = f"data/{key}.json"
+    same_bill = find_same_bill(bill_info)
     if same_bill:
-        list[same_bill[0]] = bill_info
+        monthly_bills_cache[key][same_bill[0]] = bill_info
     else:
-        list.append(
+        monthly_bills_cache[key].append(
             {
                 "account": bill_info["account"],
                 "category": bill_info["category"],
@@ -258,7 +270,6 @@ def save_bill(list, bill_info):
                 "url": bill_info["url"],
             }
         )
-    list.sort(key=lambda b: b["bill_time"], reverse=True)
+    monthly_bills_cache[key].sort(key=lambda b: b["bill_time"], reverse=True)
     with open(monthly_bills_file_path, "w", encoding="utf-8") as file:
-        json.dump(list, file, indent=4, ensure_ascii=False)
-    return list
+        json.dump(monthly_bills_cache[key], file, indent=4, ensure_ascii=False, default=json_utils.json_serial)
