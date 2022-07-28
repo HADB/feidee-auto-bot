@@ -1,7 +1,10 @@
 {
     "credentials": {
         "feideeEmail": "******",
-        "feideePassword": "******"
+        "feideePassword": "******",
+        "emailImapHost": "******",
+        "emailUsername": "******",
+        "emailPassword": "******"
     },
     "app": {
         "token": "******",

@@ -1,4 +1,4 @@
-from utils import api, color, config, log, json_utils
+from utils import api, color, config, log, json_utils, mail
 from fastapi import FastAPI, Form, UploadFile, HTTPException
 from fastapi.responses import FileResponse
 import json
@@ -30,6 +30,18 @@ def startup():
 @app.get("/")
 def home():
     return {"Hello": "World"}
+
+
+@app.get("/fetch_email")
+def fetch_email():
+    bills = mail.get_latest_bills()
+    log.info("获取邮件账单")
+    for bill_info in bills:
+        bill_info = process_bill_info(bill_info)
+        if find_same_bill(bill_info) is None:
+            log.info(f"账单信息: {bill_info}")
+            api.payout(bill_info)
+    return {"result": bills}
 
 
 @app.get("/images/{file_name}")
@@ -244,7 +256,7 @@ def find_same_bill(bill_info):
         if (
             item["account"] == bill_info["account"]
             and item["category"] == bill_info["category"]
-            and item["bill_time"] == bill_info["bill_time"]
+            and item["bill_time"].strftime("%Y%m%d%H%M") == bill_info["bill_time"].strftime("%Y%m%d%H%M")
             and item["amount"] == bill_info["amount"]
             and item["memo"] == bill_info["memo"]
         ):
