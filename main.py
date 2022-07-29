@@ -41,6 +41,7 @@ def fetch_email():
         if find_same_bill(bill_info) is None:
             log.info(f"账单信息: {bill_info}")
             api.payout(bill_info)
+            save_bill(bill_info)
     return {"result": bills}
 
 
