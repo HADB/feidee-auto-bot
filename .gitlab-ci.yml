@@ -12,6 +12,6 @@ docker-build:
     script:
         - docker build -t $PROJECT_NAME:latest .
         - if [ $(docker ps -aq --filter name=$PROJECT_NAME) ]; then docker rm -f $PROJECT_NAME;fi
-        - docker run -d -e TZ=Asia/Shanghai -p 20001:80 -v /volume3/docker/$PROJECT_NAME/config.json:/app/config.json -v /volume3/docker/$PROJECT_NAME/logs:/app/logs -v /volume3/docker/$PROJECT_NAME/data:/app/data -v /volume3/docker/$PROJECT_NAME/images:/app/images -v /volume3/docker/$PROJECT_NAME/.cnocr:/root/.cnocr --name $PROJECT_NAME $PROJECT_NAME:latest
+        - docker run -d -e TZ=Asia/Shanghai -p 20001:80 -v /volume3/docker/$PROJECT_NAME:/app -v /volume3/docker/$PROJECT_NAME/.cnocr:/root/.cnocr --name $PROJECT_NAME $PROJECT_NAME:latest
     only:
         - tags
