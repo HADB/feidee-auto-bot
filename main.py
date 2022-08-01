@@ -1,4 +1,5 @@
 from utils import api, color, config, log, json_utils, mail
+import uvicorn
 from fastapi import FastAPI, Form, UploadFile, HTTPException
 from fastapi.responses import FileResponse
 import json
@@ -36,13 +37,16 @@ def home():
 def fetch_email():
     bills = mail.get_latest_bills()
     log.info("获取邮件账单")
+    api.login()
+    api.init_data()
+    log.info("完成随手记登录和数据更新")
     for bill_info in bills:
         bill_info = process_bill_info(bill_info)
         if find_same_bill(bill_info) is None:
             log.info(f"账单信息: {bill_info}")
             api.payout(bill_info)
             save_bill(bill_info)
-    return {"result": bills}
+    return {"result": "OK"}
 
 
 @app.get("/images/{file_name}")
@@ -286,3 +290,7 @@ def save_bill(bill_info):
     monthly_bills_cache[key].sort(key=lambda b: b["bill_time"], reverse=True)
     with open(monthly_bills_file_path, "w", encoding="utf-8") as file:
         json.dump(monthly_bills_cache[key], file, indent=4, ensure_ascii=False, default=json_utils.json_serial)
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

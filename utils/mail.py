@@ -40,6 +40,7 @@ def get_latest_bills():
                             "memo": item.select("#fixBand12 font")[1].get_text()[10:],
                             "bill_time": datetime.strptime(f"{bill_date} {bill_time}", "%Y/%m/%d %H:%M:%S"),
                             "pending": False,
+                            "url": "",
                         }
                     )
                 return bills
