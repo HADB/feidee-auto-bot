@@ -26,6 +26,8 @@ def startup():
         os.makedirs("images")
     if not os.path.exists("data"):
         os.makedirs("data")
+    config.load_config()
+    config.load_credentials()
 
 
 @app.get("/")
@@ -35,6 +37,8 @@ def home():
 
 @app.get("/fetch_email")
 def fetch_email():
+    config.load_config()
+    config.load_credentials()
     bills = mail.get_latest_bills()
     log.info("获取邮件账单")
     api.login()
@@ -61,7 +65,9 @@ async def uploadCmbLifeBillScreenshot(
     file: UploadFile, token: str = Form(), ignore_pending: int = Form(1), ignore_same: int = Form(1), save_data: int = Form(1), call_feidee: int = Form(1)
 ):
     log.info("收到请求")
-    if token != config.app["token"]:
+    config.load_config()
+    config.load_credentials()
+    if token != config.credentials["token"]:
         raise HTTPException(status_code=403, detail="Forbidden")
     if ignore_pending:
         log.info("ignore_pending")
@@ -74,8 +80,8 @@ async def uploadCmbLifeBillScreenshot(
 
     file_bytes = await file.read()
     bills_img = Image.open(io.BytesIO(file_bytes))
-    lines = get_lines(bills_img, config.app["shinkRatio"])
-    bills_img = bills_img.resize((int(bills_img.width // config.app["shinkRatio"]), int(bills_img.height // config.app["shinkRatio"])))
+    lines = get_lines(bills_img, config.config["shinkRatio"])
+    bills_img = bills_img.resize((int(bills_img.width // config.config["shinkRatio"]), int(bills_img.height // config.config["shinkRatio"])))
 
     last_y = 0
 
@@ -165,7 +171,7 @@ def process_bill_info(bill_info):
 
 
 def get_category(bill_info):
-    for category in config.app["categories"]:
+    for category in config.config["categories"]:
         for keyword in category["keywords"]:
             if keyword in bill_info["memo"]:
                 return category["name"]
@@ -173,7 +179,7 @@ def get_category(bill_info):
 
 
 def get_memo(bill_info):
-    for memo in config.app["memos"]:
+    for memo in config.config["memos"]:
         for keyword in memo["keywords"]:
             if keyword in bill_info["memo"]:
                 return memo["name"]
@@ -248,7 +254,7 @@ def get_monthly_bills(key):
         return monthly_bills_cache[key]
     else:
         monthly_bills_cache[key] = []
-        monthly_bills_file_path = f"data/{datetime.now().strftime('%Y-%m')}.json"
+        monthly_bills_file_path = f"data/{key}.json"
         if os.path.exists(monthly_bills_file_path):
             with open(monthly_bills_file_path, "r", encoding="utf-8") as monthly_bills_file:
                 monthly_bills_cache[key] = json.load(monthly_bills_file, object_hook=json_utils.datetime_hook)

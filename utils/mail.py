@@ -18,10 +18,10 @@ def open_connection():
 
 def get_latest_bills():
     with open_connection() as connection:
-        typ, [msg_ids] = connection.search(None, "SUBJECT", "每日信用管家".encode("utf-8"))
+        _, [msg_ids] = connection.search(None, "SUBJECT", "每日信用管家".encode("utf-8"))
         latest_msg_id = msg_ids.split()[-1]
         log.info(f"{latest_msg_id}")
-        typ, msg_data = connection.fetch(latest_msg_id, "(RFC822)")
+        _, msg_data = connection.fetch(latest_msg_id, "(RFC822)")
         raw = email.message_from_bytes(msg_data[0][1])
         for part in raw.walk():
             if part.get_content_type() == "text/html":
