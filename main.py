@@ -36,10 +36,10 @@ def home():
 
 
 @app.get("/fetch_email")
-def fetch_email():
+def fetch_email(count: int = 1):
     config.load_config()
     config.load_credentials()
-    bills = mail.get_latest_bills()
+    bills = mail.get_latest_bills(count)
     log.info("获取邮件账单")
     api.login()
     api.init_data()
@@ -50,6 +50,8 @@ def fetch_email():
             log.info(f"账单信息: {bill_info}")
             api.payout(bill_info)
             save_bill(bill_info)
+        else:
+            log.info(f"跳过重复账单")
     return {"result": "OK"}
 
 
