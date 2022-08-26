@@ -1,10 +1,18 @@
 FROM python:3.10
-RUN cat /etc/apt/sources.list
-RUN sed -i "s@http://.*archive.ubuntu.com@https://mirrors.tuna.tsinghua.edu.cn@g" /etc/apt/sources.list
-RUN sed -i "s@http://.*security.ubuntu.com@https://mirrors.tuna.tsinghua.edu.cn@g" /etc/apt/sources.list
-RUN cat /etc/apt/sources.list
-RUN apt-get clean
-RUN apt-get update && apt-get install -y libgl1-mesa-glx
+RUN mv /etc/apt/sources.list /etc/apt/sources.list.bak && \
+    touch /etc/apt/sources.list && \
+    echo "\
+deb http://mirrors.tuna.tsinghua.edu.cn/debian/ bullseye main contrib non-free \
+deb http://mirrors.tuna.tsinghua.edu.cn/debian/ bullseye-updates main contrib non-free \
+deb http://mirrors.tuna.tsinghua.edu.cn/debian/ bullseye-backports main contrib non-free \
+deb http://mirrors.tuna.tsinghua.edu.cn/debian-security bullseye-security main contrib non-free \
+" > /etc/apt/sources.list && \
+    apt update && \
+    apt install -y apt-transport-https ca-certificates && \
+    sed -i 's/http:\/\//https:\/\//g' /etc/apt/sources.list && \
+    apt update
+
+RUN apt-get install -y libgl1-mesa-glx
 WORKDIR /app
 COPY requirements.txt /app
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
