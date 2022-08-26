@@ -158,7 +158,7 @@ def process_bill_info(bill_info):
     bill_info["account"] = "招行信用卡"
 
     # 特殊场景
-    if "全家" in bill_info["memo"] and bill_info["bill_time"].hour < 10:
+    if ("全家" in bill_info["memo"] or "罗森" in bill_info["memo"]) and bill_info["bill_time"].hour < 10:
         bill_info["category"] = "早午晚餐"
     elif "美团" in bill_info["memo"] and bill_info["amount"] == 1.50:
         bill_info["category"] = "共享单车"
