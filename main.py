@@ -153,8 +153,8 @@ def get_lines(bills_img, ratio):
 
 def process_bill_info(bill_info):
     monthly_bills = get_monthly_bills(bill_info["bill_time"].strftime("%Y-%m"))
-    bill_info["category"] = get_category(bill_info)
     bill_info["memo"] = get_memo(bill_info)
+    bill_info["category"] = get_category(bill_info)
     bill_info["account"] = "招行信用卡"
 
     # 特殊场景
@@ -184,7 +184,7 @@ def get_memo(bill_info):
     for memo in config.config["memos"]:
         for keyword in memo["keywords"]:
             if keyword in bill_info["memo"]:
-                return memo["name"]
+                return f"{memo['name']}\n{bill_info['memo']}"
     return bill_info["memo"]
 
 
