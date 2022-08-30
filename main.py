@@ -184,7 +184,7 @@ def get_memo(bill_info):
     for memo in config.config["memos"]:
         for keyword in memo["keywords"]:
             if keyword in bill_info["memo"]:
-                return f"{memo['name']}\n{bill_info['memo']}"
+                return f"{memo['name']}\r\n{bill_info['memo']}"
     return bill_info["memo"]
 
 
