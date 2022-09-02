@@ -224,13 +224,13 @@ def read_bill_info(bills_img, top, bottom):
     bill_img = bills_img.crop((0, top, bills_img.width, bottom))
 
     memo_img = crop_blank(bill_img.crop((140 * bill_img.width // 1170, 40 * bill_img.width // 1170, 900 * bill_img.width // 1170, 100 * bill_img.width // 1170)))
-    memo = normal_ocr.ocr_for_single_line(numpy.array(memo_img.convert("RGB")))[0]
+    memo = normal_ocr.ocr_for_single_line(numpy.array(memo_img.convert("RGB")))["text"]
 
     amount_img = crop_blank(bill_img.crop((800 * bill_img.width // 1170, 100 * bill_img.width // 1170, bill_img.width - 30 * bill_img.width // 1170, 190 * bill_img.width // 1170)))
-    amount = float(amount_ocr.ocr_for_single_line(numpy.array(amount_img.convert("RGB")))[0].replace("¥", ""))
+    amount = float(amount_ocr.ocr_for_single_line(numpy.array(amount_img.convert("RGB")))["text"].replace("¥", ""))
 
     category_time_img = crop_blank(bill_img.crop((140 * bill_img.width // 1170, 120 * bill_img.width // 1170, 800 * bill_img.width // 1170, 180 * bill_img.width // 1170)))
-    category_time = category_time_ocr.ocr_for_single_line(numpy.array(category_time_img.convert("RGB")))[0]
+    category_time = category_time_ocr.ocr_for_single_line(numpy.array(category_time_img.convert("RGB")))["text"]
 
     m = re.match(r"^([^0-9a-zA-Z ]+)([\d/\s:]+)([\D]*)$", category_time)
     if len(m.groups()) == 3:
