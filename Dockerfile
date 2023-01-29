@@ -12,7 +12,6 @@ deb http://mirrors.tuna.tsinghua.edu.cn/debian-security bullseye-security main c
     sed -i 's/http:\/\//https:\/\//g' /etc/apt/sources.list && \
     apt update
 
-RUN apt-get install -y libgl1-mesa-glx
 WORKDIR /app
 COPY requirements.txt /app
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple

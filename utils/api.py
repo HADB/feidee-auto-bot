@@ -1,7 +1,6 @@
 import requests
 import json
 import hashlib
-import time
 from utils import config, log
 from bs4 import BeautifulSoup
 import re

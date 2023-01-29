@@ -1,9 +1,4 @@
 beautifulsoup4==4.11.1
 fastapi==0.80.0
-numpy==1.23.2
-Pillow==9.2.0
-python-multipart==0.0.5
 requests==2.28.1
 uvicorn==0.18.3
-onnxruntime==1.12.1
-cnocr==2.2.1
