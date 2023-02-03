@@ -26,7 +26,9 @@
                 "金拱门",
                 "肯德基",
                 "面馆",
-                "牛肉面"
+                "牛肉面",
+                "国霞路店",
+                "湘芙蓉"
             ]
         },
         {
@@ -78,7 +80,7 @@
         },
         {
             "name": "家庭公共",
-            "keywords": ["京东", "家润多"]
+            "keywords": ["京东", "家润多", "超市"]
         },
         {
             "name": "各类会员",
@@ -86,7 +88,7 @@
         },
         {
             "name": "游戏",
-            "keywords": ["网之易", "App Store"]
+            "keywords": ["网之易", "App Store", "BLIZZARDENT"]
         },
         {
             "name": "水电煤气",
@@ -94,7 +96,7 @@
         },
         {
             "name": "虚拟产品",
-            "keywords": ["GOOGLE*CLOUD"]
+            "keywords": ["GOOGLE*CLOUD", "GODADDY"]
         },
         {
             "name": "旅游度假",
