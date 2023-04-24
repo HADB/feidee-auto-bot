@@ -5,14 +5,15 @@ from datetime import datetime
 
 from bs4 import BeautifulSoup
 from yuanfen import logger
+from yuanfen.config import Config
 
-from utils import config
+credentials = Config("config/credentials.json")
 
 
 def open_connection():
-    hostname = config.credentials["emailImapHost"]
-    username = config.credentials["emailUsername"]
-    password = config.credentials["emailPassword"]
+    hostname = credentials["emailImapHost"]
+    username = credentials["emailUsername"]
+    password = credentials["emailPassword"]
     connection = imaplib.IMAP4_SSL(hostname)
     connection.login(username, password)
     connection.select("INBOX", readonly=True)

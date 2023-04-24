@@ -4,22 +4,21 @@ import os
 import uvicorn
 from fastapi import FastAPI
 from yuanfen import logger
+from yuanfen.config import Config
 
-from utils import api, config, json_utils, mail
+from utils import api, json_utils, mail
 
 app = FastAPI()
 monthly_bills_cache = {}
+
+config = Config("config/config.json")
 
 
 @app.on_event("startup")
 def startup():
     print("startup")
-    if not os.path.exists("images"):
-        os.makedirs("images")
     if not os.path.exists("data"):
         os.makedirs("data")
-    config.load_config()
-    config.load_credentials()
 
 
 @app.get("/")
@@ -29,8 +28,6 @@ def home():
 
 @app.get("/fetch_email")
 def fetch_email(count: int = 1):
-    config.load_config()
-    config.load_credentials()
     bills = mail.get_latest_bills(count)
     logger.info("获取邮件账单")
     api.login()
@@ -69,7 +66,7 @@ def process_bill_info(bill_info):
 
 
 def get_category(bill_info):
-    for category in config.config["categories"]:
+    for category in config["categories"]:
         for keyword in category["keywords"]:
             if keyword in bill_info["memo"]:
                 return category["name"]
@@ -77,7 +74,7 @@ def get_category(bill_info):
 
 
 def get_memo(bill_info):
-    for memo in config.config["memos"]:
+    for memo in config["memos"]:
         for keyword in memo["keywords"]:
             if keyword in bill_info["memo"]:
                 return f"{memo['name']} {bill_info['memo']}"
