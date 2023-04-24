@@ -1,9 +1,12 @@
-import imaplib
-from utils import config, log
-import email
 import base64
-from bs4 import BeautifulSoup
+import email
+import imaplib
 from datetime import datetime
+
+from bs4 import BeautifulSoup
+from yuanfen import logger
+
+from utils import config
 
 
 def open_connection():
@@ -20,7 +23,7 @@ def get_latest_bills(count):
     with open_connection() as connection:
         _, [msg_ids] = connection.search(None, "SUBJECT", "每日信用管家".encode("utf-8"))
         latest_msg_ids = msg_ids.split()[-count:]
-        log.info(f"{latest_msg_ids}")
+        logger.info(f"{latest_msg_ids}")
         bills = []
         for msg_id in latest_msg_ids:
             _, msg_data = connection.fetch(msg_id, "(RFC822)")

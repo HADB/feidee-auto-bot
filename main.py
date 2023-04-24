@@ -1,9 +1,11 @@
-from utils import api, config, log, json_utils, mail
-import uvicorn
-from fastapi import FastAPI
 import json
 import os
 
+import uvicorn
+from fastapi import FastAPI
+from yuanfen import logger
+
+from utils import api, config, json_utils, mail
 
 app = FastAPI()
 monthly_bills_cache = {}
@@ -30,18 +32,18 @@ def fetch_email(count: int = 1):
     config.load_config()
     config.load_credentials()
     bills = mail.get_latest_bills(count)
-    log.info("获取邮件账单")
+    logger.info("获取邮件账单")
     api.login()
     api.init_data()
-    log.info("完成随手记登录和数据更新")
+    logger.info("完成随手记登录和数据更新")
     for bill_info in bills:
         bill_info = process_bill_info(bill_info)
         if find_same_bill(bill_info) is None:
-            log.info(f"账单信息: {bill_info}")
+            logger.info(f"账单信息: {bill_info}")
             api.payout(bill_info)
             save_bill(bill_info)
         else:
-            log.info(f"跳过重复账单")
+            logger.info(f"跳过重复账单")
     return {"result": "OK"}
 
 

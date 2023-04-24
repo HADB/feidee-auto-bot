@@ -1,4 +1,5 @@
-beautifulsoup4==4.11.1
-fastapi==0.80.0
-requests==2.28.1
-uvicorn==0.18.3
+beautifulsoup4
+fastapi
+requests
+uvicorn
+yuanfen

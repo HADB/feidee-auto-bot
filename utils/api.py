@@ -1,9 +1,12 @@
-import requests
-import json
 import hashlib
-from utils import config, log
-from bs4 import BeautifulSoup
+import json
 import re
+
+import requests
+from bs4 import BeautifulSoup
+from yuanfen import logger
+
+from utils import config
 
 headers = {
     "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36",
@@ -23,12 +26,12 @@ def login():
     password = hash_password(password + vccode)
     params = {"email": email, "password": password, "uid": uid, "status": "1"}
     result = session.get("https://login.sui.com/login.do", params=params, headers=headers)
-    log.info(result.text)
+    logger.info(result.text)
 
     auth_redirect("GET", "https://login.sui.com/auth.do")
 
     result = session.post("https://www.sui.com/report_index.rmi", params={"m": "a"}, headers=headers)
-    log.info(result.text)
+    logger.info(result.text)
 
 
 def init_data():
@@ -99,7 +102,7 @@ def payout(bill_info):
         "price2": "",
     }
     result = session.post("https://www.sui.com/tally/payout.rmi", params=params, headers=headers)
-    log.info(f"支出记录创建结果: {result.text}")
+    logger.info(f"支出记录创建结果: {result.text}")
 
 
 def upload(filePath):
@@ -108,9 +111,9 @@ def upload(filePath):
     url = ""
     if m and len(m.groups()) == 1:
         url = m.groups()[0].strip()
-        log.info(f"上传图片成功: {url}")
+        logger.info(f"上传图片成功: {url}")
     else:
-        log.info(f"上传图片失败，result: {result.text}")
+        logger.info(f"上传图片失败，result: {result.text}")
     return url
 
 
@@ -125,7 +128,7 @@ def hash_password(str):
 
 def auth_redirect(method, url, data={}, count=1):
     if count > 5:
-        log.info("跳转太多次了")
+        logger.info("跳转太多次了")
         return
     result = None
     if method.upper() == "GET":
@@ -147,7 +150,7 @@ def auth_redirect(method, url, data={}, count=1):
 
             auth_redirect(method, action, data, count + 1)
     else:
-        log.info("认证跳转成功")
+        logger.info("认证跳转成功")
 
 
 def get_account_id(account_name):
