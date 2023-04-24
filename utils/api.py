@@ -5,8 +5,9 @@ import re
 import requests
 from bs4 import BeautifulSoup
 from yuanfen import logger
+from yuanfen.config import Config
 
-from utils import config
+credentials = Config("config/credentials.json")
 
 headers = {
     "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36",
@@ -18,8 +19,8 @@ accounts = []
 
 
 def login():
-    email = config.credentials["feideeEmail"]
-    password = config.credentials["feideePassword"]
+    email = credentials["feideeEmail"]
+    password = credentials["feideePassword"]
     vccode, uid = get_vccode_and_uid()
     password = hash_password(password)
     password = hash_password(email + password)

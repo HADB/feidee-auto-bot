@@ -16,7 +16,7 @@ config = Config("config/config.json")
 
 @app.on_event("startup")
 def startup():
-    print("startup")
+    logger.info("startup")
     if not os.path.exists("data"):
         os.makedirs("data")
 
