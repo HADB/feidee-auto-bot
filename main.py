@@ -1,7 +1,8 @@
 import json
 import os
+import time
 
-import uvicorn
+import schedule
 from fastapi import FastAPI
 from yuanfen import logger
 from yuanfen.config import Config
@@ -14,19 +15,6 @@ monthly_bills_cache = {}
 config = Config("config/config.json")
 
 
-@app.on_event("startup")
-def startup():
-    logger.info("startup")
-    if not os.path.exists("data"):
-        os.makedirs("data")
-
-
-@app.get("/")
-def home():
-    return {"Hello": "World"}
-
-
-@app.get("/fetch_email")
 def fetch_email(count: int = 1):
     bills = mail.get_latest_bills(count)
     logger.info("获取邮件账单")
@@ -132,4 +120,10 @@ def save_bill(bill_info):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    logger.info("程序启动")
+    if not os.path.exists("data"):
+        os.makedirs("data")
+    schedule.every().hour.do(fetch_email)
+    while True:
+        schedule.run_pending()
+        time.sleep(3600)
