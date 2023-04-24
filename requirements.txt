@@ -2,4 +2,4 @@ beautifulsoup4
 fastapi
 requests
 schedule
-yuanfen==2023.4.24.6
+yuanfen>=2023.4.24.7
