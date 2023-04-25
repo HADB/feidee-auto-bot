@@ -123,6 +123,7 @@ if __name__ == "__main__":
     logger.info("程序启动")
     if not os.path.exists("data"):
         os.makedirs("data")
+    fetch_email()
     schedule.every().hour.do(fetch_email)
     while True:
         schedule.run_pending()
