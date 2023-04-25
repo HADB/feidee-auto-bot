@@ -2,6 +2,7 @@ import base64
 import email
 import imaplib
 from datetime import datetime
+import chardet
 
 from bs4 import BeautifulSoup
 from yuanfen import logger
@@ -31,7 +32,9 @@ def get_latest_bills(count):
             raw = email.message_from_bytes(msg_data[0][1])
             for part in raw.walk():
                 if part.get_content_type() == "text/html":
-                    html_str = str(base64.b64decode(part.get_payload()), encoding="gbk")
+                    payload = part.get_payload(decode=True)
+                    charset = chardet.detect(payload)["encoding"]
+                    html_str = payload.decode(charset)
                     with open("logs/latest-bills.html", "w", encoding="utf-8") as html_file:
                         html_file.write(html_str)
                     soup = BeautifulSoup(html_str, "html.parser")
