@@ -15,8 +15,8 @@ monthly_bills_cache = {}
 config = Config("config/config.json")
 
 
-def fetch_email(count: int = 1):
-    bills = mail.get_latest_bills(count)
+def fetch_email(count: int = 1, date=None):
+    bills = mail.get_latest_bills(count, date)
     logger.info("获取邮件账单")
     api.login()
     api.init_data()

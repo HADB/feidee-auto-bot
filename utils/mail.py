@@ -21,7 +21,7 @@ def open_connection():
     return connection
 
 
-def get_latest_bills(count):
+def get_latest_bills(count, date=None):
     with open_connection() as connection:
         _, [msg_ids] = connection.search(None, "SUBJECT", "每日信用管家".encode("utf-8"))
         latest_msg_ids = msg_ids.split()[-count:]
@@ -34,11 +34,16 @@ def get_latest_bills(count):
                 if part.get_content_type() == "text/html":
                     payload = part.get_payload(decode=True)
                     charset = chardet.detect(payload)["encoding"]
+                    if charset == "GB2312":
+                        charset = "GBK"
                     html_str = payload.decode(charset)
                     with open("logs/latest-bills.html", "w", encoding="utf-8") as html_file:
                         html_file.write(html_str)
                     soup = BeautifulSoup(html_str, "html.parser")
                     bill_date = soup.select("#loopHeader1 font")[1].get_text()[:10]
+                    if date is not None and bill_date != date:
+                        logger.warn(f"账单日期不符: {bill_date} {date}")
+                        continue
                     items = soup.select("#fixBand4")
 
                     for item in items:
