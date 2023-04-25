@@ -43,10 +43,16 @@ def get_latest_bills(count):
 
                     for item in items:
                         bill_time = item.select("#fixBand5 font")[0].get_text()
+                        currency = item.select("#fixBand12 font")[0].get_text()[:3]
+                        amount = float(item.select("#fixBand12 font")[0].get_text()[4:])
+                        memo = item.select("#fixBand12 font")[1].get_text()[10:]
+                        if currency != "CNY":
+                            logger.warn(f"非人民币账单: {bill_date} {bill_time} {currency} {amount} {memo}")
+                            continue
                         bills.append(
                             {
-                                "amount": float(item.select("#fixBand12 font")[0].get_text()[4:]),
-                                "memo": item.select("#fixBand12 font")[1].get_text()[10:],
+                                "amount": amount,
+                                "memo": memo,
                                 "bill_time": datetime.strptime(f"{bill_date} {bill_time}", "%Y/%m/%d %H:%M:%S"),
                                 "pending": False,
                                 "url": "",
