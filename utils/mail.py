@@ -5,10 +5,11 @@ from datetime import datetime
 import chardet
 
 from bs4 import BeautifulSoup
-from yuanfen import logger
-from yuanfen.config import Config
+from yuanfen import Logger, Config
 
-credentials = Config("config/credentials.json")
+
+credentials = Config("config/credentials.yaml")
+logger = Logger()
 
 
 def open_connection():

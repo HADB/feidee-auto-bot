@@ -130,6 +130,8 @@ dmypy.json
 
 config.json
 credentials.json
+config.yaml
+credentials.yaml
 logs/
 images/
 data/

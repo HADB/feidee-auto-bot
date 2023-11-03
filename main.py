@@ -4,15 +4,14 @@ import time
 
 import schedule
 from fastapi import FastAPI
-from yuanfen import logger
-from yuanfen.config import Config
+from yuanfen import Logger, Config
 
 from utils import api, json_utils, mail
 
 app = FastAPI()
 monthly_bills_cache = {}
-
-config = Config("config/config.json")
+logger = Logger()
+config = Config("config/config.yaml")
 
 
 def fetch_email(count: int = 1, date=None):
@@ -55,17 +54,17 @@ def process_bill_info(bill_info):
 
 def get_category(bill_info):
     for category in config["categories"]:
-        for keyword in category["keywords"]:
+        for keyword in config["categories"][category]:
             if keyword in bill_info["memo"]:
-                return category["name"]
+                return category
     return "未分类支出"
 
 
 def get_memo(bill_info):
     for memo in config["memos"]:
-        for keyword in memo["keywords"]:
+        for keyword in config["memos"][memo]:
             if keyword in bill_info["memo"]:
-                return f"{memo['name']} {bill_info['memo']}"
+                return f"{memo} {bill_info['memo']}"
     return bill_info["memo"]
 
 
