@@ -4,7 +4,7 @@ import re
 
 import requests
 from bs4 import BeautifulSoup
-from yuanfen import Logger, Config
+from yuanfen import Config, Logger
 
 credentials = Config("config/credentials.yaml")
 logger = Logger()
@@ -26,12 +26,12 @@ def login():
     password = hash_password(email + password)
     password = hash_password(password + vccode)
     params = {"email": email, "password": password, "uid": uid, "status": "1"}
-    result = session.get("https://login.sui.com/login.do", params=params, headers=headers)
+    result = session.get("https://login.sui.com/login.do", params=params, headers=headers, timeout=10)
     logger.info(result.text)
 
     auth_redirect("GET", "https://login.sui.com/auth.do")
 
-    result = session.post("https://www.sui.com/report_index.rmi", params={"m": "a"}, headers=headers)
+    result = session.post("https://www.sui.com/report_index.rmi", params={"m": "a"}, headers=headers, timeout=10)
     logger.info(result.text)
 
 
@@ -40,7 +40,7 @@ def init_data():
     global income_categories
     global accounts
 
-    result = session.get("https://www.sui.com/tally/new.do", headers=headers)
+    result = session.get("https://www.sui.com/tally/new.do", headers=headers, timeout=10)
     soup = BeautifulSoup(result.text, features="html.parser")
 
     payoutLis = soup.find(id="levelSelect-payout").find(id="ls-ul1-payout").find_all("li", recursive=False)
@@ -102,12 +102,12 @@ def payout(bill_info):
         "price": bill_info["amount"],  # 金额
         "price2": "",
     }
-    result = session.post("https://www.sui.com/tally/payout.rmi", params=params, headers=headers)
+    result = session.post("https://www.sui.com/tally/payout.rmi", params=params, headers=headers, timeout=10)
     logger.info(f"支出记录创建结果: {result.text}")
 
 
 def upload(filePath):
-    result = session.post("https://www.sui.com/tally/new.do?opt=upload&transId=add", files={"imagefile": open(filePath, "rb")}, headers=headers)
+    result = session.post("https://www.sui.com/tally/new.do?opt=upload&transId=add", files={"imagefile": open(filePath, "rb")}, headers=headers, timeout=10)
     m = re.match(r"^.*'(.*)'.*$", result.text)
     url = ""
     if m and len(m.groups()) == 1:
@@ -119,7 +119,7 @@ def upload(filePath):
 
 
 def get_vccode_and_uid():
-    result = json.loads(session.get("https://login.sui.com/login.do?opt=vccode", headers=headers).text)
+    result = json.loads(session.get("https://login.sui.com/login.do?opt=vccode", headers=headers, timeout=10).text)
     return (result["vccode"], result["uid"])
 
 
@@ -133,9 +133,9 @@ def auth_redirect(method, url, data={}, count=1):
         return
     result = None
     if method.upper() == "GET":
-        result = session.get(url, params=data, headers=headers)
+        result = session.get(url, params=data, headers=headers, timeout=10)
     elif method.upper() == "POST":
-        result = session.post(url, data=data, headers=headers)
+        result = session.post(url, data=data, headers=headers, timeout=10)
     soup = BeautifulSoup(result.text, features="html.parser")
     body = soup.find("body")
     if body.has_attr("onload"):
