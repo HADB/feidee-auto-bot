@@ -4,7 +4,7 @@ import time
 
 import schedule
 from fastapi import FastAPI
-from yuanfen import Logger, Config
+from yuanfen import Config, Logger
 
 from utils import api, json_utils, mail
 
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     logger.info("程序启动")
     if not os.path.exists("data"):
         os.makedirs("data")
-    fetch_email()
+    fetch_email(30)
     schedule.every().hour.do(fetch_email)
     while True:
         schedule.run_pending()
