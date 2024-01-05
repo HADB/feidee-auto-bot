@@ -1,4 +1,5 @@
 {
     "python.formatting.provider": "black",
-    "python.formatting.blackArgs": ["--line-length=180"]
+    "python.formatting.blackArgs": ["--line-length=180"],
+    "cSpell.words": ["feidee", "vccode"]
 }

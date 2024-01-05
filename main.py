@@ -18,13 +18,12 @@ def fetch_email(count: int = 1, date=None):
     bills = mail.get_latest_bills(count, date)
     logger.info("获取邮件账单")
     api.login()
-    api.init_data()
     logger.info("完成随手记登录和数据更新")
     for bill_info in bills:
         bill_info = process_bill_info(bill_info)
         if find_same_bill(bill_info) is None:
             logger.info(f"账单信息: {bill_info}")
-            api.payout(bill_info)
+            api.expense(bill_info)
             save_bill(bill_info)
         else:
             logger.info(f"跳过重复账单")
@@ -122,7 +121,8 @@ if __name__ == "__main__":
     logger.info("程序启动")
     if not os.path.exists("data"):
         os.makedirs("data")
-    fetch_email(30)
+
+    fetch_email(3)
     schedule.every().hour.do(fetch_email)
     while True:
         schedule.run_pending()
